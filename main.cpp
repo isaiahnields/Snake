@@ -1,10 +1,28 @@
-#define GLFW_EXPOSE_NATIVE_WIN32
+#if defined(_WIN32)
+    #ifndef GLFW_EXPOSED_NATIVE_WIN32
+    #define GLFW_EXPOSED_NATIVE_WIN32
+    #endif
+    #define GLFW_EXPOSE_NATIVE_WIN32
+#elif defined(__linux__)
+    #ifndef GLFW_EXPOSED_NATIVE_X11
+    #define GLFW_EXPOSED_NATIVE_X11
+    #endif
+    #define GLFW_EXPOSE_NATIVE_X11
+// Or #define GLFW_EXPOSED_NATIVE_WAYLAND if using Wayland
+#elif defined(__APPLE__)
+    #define GLFW_EXPOSED_NATIVE_COCOA
+#endif
+
 
 #include <stdio.h>
 #include "bgfx/bgfx.h"
 #include "GLFW/glfw3.h"
 #include <GLFW/glfw3native.h>
 
+#if defined(__linux__)
+    #include <X11/Xlib.h>
+    #include <X11/extensions/Xrandr.h>
+#endif
 
 #define WNDW_WIDTH 1600
 #define WNDW_HEIGHT 900

@@ -1,7 +1,9 @@
 #if defined(_WIN32)
     #define GLFW_EXPOSED_NATIVE_WIN32
 #elif defined(__linux__)
+    #ifndef GLFW_EXPOSED_NATIVE_X11
     #define GLFW_EXPOSED_NATIVE_X11
+    #endif
 // Or #define GLFW_EXPOSED_NATIVE_WAYLAND if using Wayland
 #elif defined(__APPLE__)
     #define GLFW_EXPOSED_NATIVE_COCOA
@@ -10,6 +12,8 @@
 #include <stdio.h>
 #include "bgfx/bgfx.h"
 #include "GLFW/glfw3.h"
+#include <X11/Xlib.h>
+#include <X11/extensions/Xrandr.h>
 #include <GLFW/glfw3native.h>
 
 

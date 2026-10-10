@@ -34,3 +34,12 @@ target_link_libraries(bgfx_app PRIVATE
         bx        # Base utility library dependency
         glfw      # GLFW windowing)
 )
+
+if(WIN32)
+    target_compile_definitions(bgfx_app PRIVATE GLFW_EXPOSED_NATIVE_WIN32)
+elseif(APPLE)
+    target_compile_definitions(bgfx_app PRIVATE GLFW_EXPOSED_NATIVE_COCOA)
+else()
+    # Assuming Linux X11, adjust to WAYLAND if needed
+    target_compile_definitions(bgfx_app PRIVATE GLFW_EXPOSED_NATIVE_X11)
+endif()

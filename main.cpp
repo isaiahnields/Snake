@@ -1,4 +1,11 @@
-#define GLFW_EXPOSE_NATIVE_WIN32
+#if defined(_WIN32)
+    #define GLFW_EXPOSED_NATIVE_WIN32
+#elif defined(__linux__)
+    #define GLFW_EXPOSED_NATIVE_X11
+// Or #define GLFW_EXPOSED_NATIVE_WAYLAND if using Wayland
+#elif defined(__APPLE__)
+    #define GLFW_EXPOSED_NATIVE_COCOA
+#endif
 
 #include <stdio.h>
 #include "bgfx/bgfx.h"

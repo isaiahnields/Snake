@@ -7,8 +7,6 @@ project(Game
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_C_STANDARD 99)
 
-add_compile_definitions(__unaligned=)
-
 # Option 1: Using FetchContent to pull bgfx.cmake directly (recommended for quick setups)
 include(FetchContent)
 FetchContent_Declare(
@@ -38,10 +36,15 @@ target_link_libraries(bgfx_app PRIVATE
 )
 
 if(WIN32)
-    target_compile_definitions(bgfx_app PRIVATE GLFW_EXPOSED_NATIVE_WIN32)
+    target_compile_definitions(bgfx_app PRIVATE GLFW_EXPOSE_NATIVE_WIN32)
 elseif(APPLE)
-    target_compile_definitions(bgfx_app PRIVATE GLFW_EXPOSED_NATIVE_COCOA)
+    target_compile_definitions(bgfx_app PRIVATE GLFW_EXPOSE_NATIVE_COCOA)
 else()
     # Assuming Linux X11, adjust to WAYLAND if needed
-    target_compile_definitions(bgfx_app PRIVATE GLFW_EXPOSED_NATIVE_X11)
+    target_compile_definitions(bgfx_app PRIVATE GLFW_EXPOSE_NATIVE_X11)
+endif()
+
+# If __unaligned is required for MSVC only, set it on the target:
+if(MSVC)
+    target_compile_definitions(bgfx_app PRIVATE __unaligned=)
 endif()

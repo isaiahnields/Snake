@@ -10,11 +10,17 @@
     #define GLFW_EXPOSED_NATIVE_COCOA
 #endif
 
+
+
 #include <stdio.h>
 #include "bgfx/bgfx.h"
 #include "GLFW/glfw3.h"
-#include <X11/Xlib.h>
-#include <X11/extensions/Xrandr.h>
+
+#if defined(__linux__)
+    #include <X11/Xlib.h>
+    #include <X11/extensions/Xrandr.h>
+#endif
+
 #include <GLFW/glfw3native.h>
 
 

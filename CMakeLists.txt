@@ -14,7 +14,6 @@ FetchContent_Declare(
     GIT_REPOSITORY https://github.com/bkaradzic/bgfx.cmake.git
     GIT_TAG        master
 )
-FetchContent_MakeAvailable(bgfx.cmake)
 
 
 FetchContent_Declare(
@@ -22,7 +21,7 @@ FetchContent_Declare(
   GIT_REPOSITORY https://github.com/glfw/glfw.git
   GIT_TAG        master
 )
-FetchContent_MakeAvailable(glfw)
+FetchContent_MakeAvailable(bgfx.cmake glfw)
 
 # Define your executable
 add_executable(bgfx_app main.cpp)

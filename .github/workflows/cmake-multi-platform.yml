@@ -135,6 +135,7 @@ jobs:
           else
             ls -la "${GITHUB_WORKSPACE}" > "$FALLBACK"
           fi
+        fi
 
     - name: Upload screenshot artifact
       uses: actions/upload-artifact@v7

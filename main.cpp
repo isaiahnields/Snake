@@ -1,9 +1,11 @@
+#define GLFW_EXPOSE_NATIVE_WIN32
+
 #include <stdio.h>
 #include "bgfx/bgfx.h"
 #include "GLFW/glfw3.h"
 #include <GLFW/glfw3native.h>
 
-#define GLFW_EXPOSE_NATIVE_WIN32
+
 #define WNDW_WIDTH 1600
 #define WNDW_HEIGHT 900
 

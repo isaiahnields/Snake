@@ -118,15 +118,16 @@ jobs:
       run: |
         OUT="${{ steps.strings.outputs.build-output-dir }}/screenshot.png"
         sudo apt-get update -y
-        sudo apt-get install -y scrot || true
+        sudo apt-get install -y scrot xvfb || true
+        
         if command -v scrot >/dev/null 2>&1; then
-          # scrot may require a display; attempt to capture if available
-          DISPLAY=${DISPLAY:-:0} scrot "$OUT" || echo "scrot failed to capture a display; creating text fallback."
+          # Run scrot inside a virtual X server frame buffer
+          xvfb-run --auto-servernum --server-args="-screen 0 1280x1024x24" scrot "$OUT" || echo "scrot failed to capture a display; creating text fallback."
         else
           echo "scrot not available; creating text fallback."
         fi
+
         if [ ! -f "$OUT" ]; then
-          # Fallback: save last test log or a textual snapshot
           FALLBACK="${{ steps.strings.outputs.build-output-dir }}/screenshot.txt"
           echo "No graphical screenshot could be taken on this runner. Saving last test output (if available) to $FALLBACK"
           if [ -f "${GITHUB_WORKSPACE}/build/Testing/Temporary/LastTest.log" ]; then
@@ -134,7 +135,6 @@ jobs:
           else
             ls -la "${GITHUB_WORKSPACE}" > "$FALLBACK"
           fi
-        fi
 
     - name: Upload screenshot artifact
       uses: actions/upload-artifact@v7

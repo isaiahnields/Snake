@@ -1,5 +1,7 @@
 #if defined(_WIN32)
+    #ifndef GLFW_EXPOSED_NATIVE_WIN32
     #define GLFW_EXPOSED_NATIVE_WIN32
+    #endif
     #define GLFW_EXPOSE_NATIVE_WIN32
 #elif defined(__linux__)
     #ifndef GLFW_EXPOSED_NATIVE_X11

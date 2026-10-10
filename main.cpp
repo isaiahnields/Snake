@@ -4,6 +4,7 @@
     #ifndef GLFW_EXPOSED_NATIVE_X11
     #define GLFW_EXPOSED_NATIVE_X11
     #endif
+    #define GLFW_EXPOSE_NATIVE_X11
 // Or #define GLFW_EXPOSED_NATIVE_WAYLAND if using Wayland
 #elif defined(__APPLE__)
     #define GLFW_EXPOSED_NATIVE_COCOA

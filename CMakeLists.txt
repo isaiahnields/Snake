@@ -7,6 +7,8 @@ project(Game
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_C_STANDARD 99)
 
+add_compile_definitions(__unaligned=)
+
 # Option 1: Using FetchContent to pull bgfx.cmake directly (recommended for quick setups)
 include(FetchContent)
 FetchContent_Declare(

@@ -16,8 +16,21 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(bgfx.cmake)
 
+
+FetchContent_Declare(
+  glfw
+  GIT_REPOSITORY https://github.com/glfw/glfw.git
+  GIT_TAG        master
+)
+FetchContent_MakeAvailable(glfw)
+
 # Define your executable
 add_executable(bgfx_app main.cpp)
 
 # Link bgfx (which automatically pulls in bx and bimg dependencies)
-target_link_libraries(bgfx_app PRIVATE bgfx)
+target_link_libraries(bgfx_app PRIVATE
+        bgfx      # Core bgfx library
+        bimg      # Image library dependency
+        bx        # Base utility library dependency
+        glfw      # GLFW windowing)
+)

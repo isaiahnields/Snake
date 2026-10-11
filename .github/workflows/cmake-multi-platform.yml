@@ -4,7 +4,9 @@ name: CMake on multiple platforms
 
 on:
   push:
+    branches: [ "main" ]
   pull_request:
+    branches: [ "main" ]
 
 jobs:
   build:
@@ -45,31 +47,6 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Install dependencies (Linux)
-      if: runner.os == 'Linux'
-      shell: bash
-      run: |
-        sudo apt-get update
-        sudo apt-get install \
-          libx11-dev \
-          libxrandr-dev \
-          libxinerama-dev \
-          libxcursor-dev \
-          libxi-dev \
-          libopengl-dev \
-          libglx-dev \
-          libgl1-mesa-dev \
-          libwayland-dev \
-          wayland-protocols \
-          extra-cmake-modules \
-          libxkbcommon-dev \
-          xorg-dev
-
-    - name: Set up ccache
-      uses: hendrikmuhs/ccache-action@v1.2
-      with:
-        key: ${{ runner.os }}-ccache
-
     - name: Set reusable strings
       # Turn repeated input strings (such as the build output directory) into step outputs. These step outputs can be used throughout the workflow file.
       id: strings
@@ -90,55 +67,9 @@ jobs:
     - name: Build
       # Build your program with the given configuration. Note that --config is needed because the default Windows generator is a multi-config generator (Visual Studio generator).
       run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }}
-      env:
-        MAKEFLAGS: "-j2"
 
     - name: Test
       working-directory: ${{ steps.strings.outputs.build-output-dir }}
       # Execute tests defined by the CMake configuration. Note that --build-config is needed because the default Windows generator is a multi-config generator (Visual Studio generator).
       # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
       run: ctest --build-config ${{ matrix.build_type }}
-
-    - name: Capture screenshot (Windows)
-      if: runner.os == 'Windows'
-      shell: powershell
-      run: |
-        Add-Type -AssemblyName System.Windows.Forms,System.Drawing
-        $bounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
-        $bmp = New-Object System.Drawing.Bitmap $bounds.Width, $bounds.Height
-        $graphics = [System.Drawing.Graphics]::FromImage($bmp)
-        $graphics.CopyFromScreen($bounds.Location, [System.Drawing.Point]::Empty, $bounds.Size)
-        $out = "${{ steps.strings.outputs.build-output-dir }}\screenshot.png"
-        $bmp.Save($out, [System.Drawing.Imaging.ImageFormat]::Png)
-        Write-Host "Screenshot saved to $out"
-
-    - name: Capture screenshot (Linux)
-      if: runner.os == 'Linux'
-      shell: bash
-      run: |
-        OUT="${{ steps.strings.outputs.build-output-dir }}/screenshot.png"
-        sudo apt-get update -y
-        sudo apt-get install -y scrot xvfb || true
-        
-        if command -v scrot >/dev/null 2>&1; then
-          # Run scrot inside a virtual X server frame buffer
-          xvfb-run --auto-servernum --server-args="-screen 0 1280x1024x24" scrot "$OUT" || echo "scrot failed to capture a display; creating text fallback."
-        else
-          echo "scrot not available; creating text fallback."
-        fi
-
-        if [ ! -f "$OUT" ]; then
-          FALLBACK="${{ steps.strings.outputs.build-output-dir }}/screenshot.txt"
-          echo "No graphical screenshot could be taken on this runner. Saving last test output (if available) to $FALLBACK"
-          if [ -f "${GITHUB_WORKSPACE}/build/Testing/Temporary/LastTest.log" ]; then
-            tail -n 500 "${GITHUB_WORKSPACE}/build/Testing/Temporary/LastTest.log" > "$FALLBACK"
-          else
-            ls -la "${GITHUB_WORKSPACE}" > "$FALLBACK"
-          fi
-        fi
-
-    - name: Upload screenshot artifact
-      uses: actions/upload-artifact@v7
-      with:
-        name: screenshot
-        path: ${{ steps.strings.outputs.build-output-dir }}/screenshot*

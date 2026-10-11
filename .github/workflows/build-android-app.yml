@@ -24,8 +24,8 @@ jobs:
           packages: 'cmdline-tools;latest platform-tools platforms;android-34 build-tools;34.0.0'
 
       - name: Build Android APK (Gradle)
-        run: ./gradlew assembleDebug
-        working-directory: android/
+        run: gradlew assembleDebug
+        working-directory: ./android
 
       - name: Run Android Emulator and Execute Script
         uses: reactivecircus/android-emulator-runner@v2

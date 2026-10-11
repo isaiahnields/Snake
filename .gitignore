@@ -39,3 +39,6 @@
 /_deps/*
 /external/*
 vendored/SDL/
+.idea/*
+android/.gradle/*
+android/.idea/*

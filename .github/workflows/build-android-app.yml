@@ -1,4 +1,4 @@
-name: Build Android App
+name: Build Android apps
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-android-app:
+  build-android-apps:
     runs-on: ubuntu-latest
     strategy:
       matrix:

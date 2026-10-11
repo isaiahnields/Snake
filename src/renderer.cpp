@@ -1,6 +1,6 @@
 #include "renderer.h"
 
-void draw_menu(SDL_Renderer* renderer, int selected_option) {
+void draw_menu(SDL_Renderer* renderer, GameMode selected_mode) {
     SDL_SetRenderDrawColor(renderer, 30, 30, 30, 255);
     SDL_RenderClear(renderer);
 
@@ -11,16 +11,24 @@ void draw_menu(SDL_Renderer* renderer, int selected_option) {
     SDL_RenderFillRect(renderer, &title_rect);
 
     SDL_FRect option1_rect = {50, 150, 300, 50};
-    SDL_SetRenderDrawColor(renderer, 100, 150, 100, 255);
+    SDL_SetRenderDrawColor(renderer, 100, selected_mode == MANUAL ? 255 : 150, 100, 255);
     SDL_RenderFillRect(renderer, &option1_rect);
 
     SDL_FRect option2_rect = {50, 250, 300, 50};
-    SDL_SetRenderDrawColor(renderer, 100, 150, 100, 255);
+    SDL_SetRenderDrawColor(renderer, 100, selected_mode == TRAINING ? 255 : 150, 100, 255);
     SDL_RenderFillRect(renderer, &option2_rect);
 
     SDL_FRect option3_rect = {50, 350, 300, 50};
-    SDL_SetRenderDrawColor(renderer, 100, 150, 100, 255);
+    SDL_SetRenderDrawColor(renderer, 100, selected_mode == AI_PLAY ? 255 : 150, 100, 255);
     SDL_RenderFillRect(renderer, &option3_rect);
+
+    SDL_SetRenderScale(renderer, 2.0f, 2.0f);
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+    SDL_RenderDebugText(renderer, 80.0f, 36.0f, "SNAKE");
+    SDL_RenderDebugText(renderer, 76.0f, 84.0f, "Manual");
+    SDL_RenderDebugText(renderer, 68.0f, 134.0f, "Training");
+    SDL_RenderDebugText(renderer, 72.0f, 184.0f, "AI Play");
+    SDL_SetRenderScale(renderer, 1.0f, 1.0f);
 
     SDL_RenderPresent(renderer);
 }

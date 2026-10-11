@@ -4,5 +4,5 @@
 
 #include <SDL3/SDL.h>
 
-void draw_menu(SDL_Renderer* renderer, int selected_option);
+void draw_menu(SDL_Renderer* renderer, GameMode selected_mode);
 void draw_game(SDL_Renderer* renderer, SnakeGame& game);

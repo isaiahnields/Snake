@@ -31,6 +31,7 @@ int main(int argc, char* argv[]) {
     }
 
     GameMode mode = MENU;
+    constexpr GameMode menu_modes[] = {MANUAL, TRAINING, AI_PLAY};
     int menu_selection = 0;
     bool quit = false;
 
@@ -63,9 +64,7 @@ int main(int argc, char* argv[]) {
                     } else if (event.key.key == SDLK_DOWN) {
                         menu_selection = (menu_selection + 1) % 3;
                     } else if (event.key.key == SDLK_RETURN || event.key.key == SDLK_SPACE) {
-                        if (menu_selection == 0) mode = MANUAL;
-                        else if (menu_selection == 1) mode = TRAINING;
-                        else if (menu_selection == 2) mode = AI_PLAY;
+                        mode = menu_modes[menu_selection];
                         game.reset();
                         agent.epsilon = 1.0f;
                         episode = 1;
@@ -81,7 +80,7 @@ int main(int argc, char* argv[]) {
         }
 
         if (mode == MENU) {
-            draw_menu(renderer, menu_selection);
+            draw_menu(renderer, menu_modes[menu_selection]);
         } else if (mode == MANUAL) {
             uint32_t current_time = SDL_GetTicks();
             if (current_time - last_move_time >= MANUAL_DELAY) {

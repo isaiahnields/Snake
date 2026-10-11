@@ -25,6 +25,7 @@ jobs:
 
       - name: Build Android APK (Gradle)
         run: ./gradlew assembleDebug
+        working-directory: path/to/your/android/folder
 
       - name: Run Android Emulator and Execute Script
         uses: reactivecircus/android-emulator-runner@v2

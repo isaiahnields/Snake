@@ -19,7 +19,7 @@ int main(int argc, char* argv[]) {
 
     SDL_Window* window = nullptr;
     SDL_Renderer* renderer = nullptr;
-    if (!SDL_CreateWindowAndRenderer("Snake DQN (SDL3)",
+    if (!SDL_CreateWindowAndRenderer("Snake",
                                      WINDOW_WIDTH,
                                      WINDOW_HEIGHT,
                                      0,

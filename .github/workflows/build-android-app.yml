@@ -20,6 +20,8 @@ jobs:
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          packages: 'cmdline-tools platform-tools'
 
       - name: Build Android APK (Gradle)
         run: ./gradlew assembleDebug

@@ -4,46 +4,43 @@ project(Game
         DESCRIPTION "A simple C++ project"
         LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 14)
-set(CMAKE_C_STANDARD 99)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
-# Option 1: Using FetchContent to pull bgfx.cmake directly (recommended for quick setups)
-include(FetchContent)
-FetchContent_Declare(
-    bgfx.cmake
-    GIT_REPOSITORY https://github.com/bkaradzic/bgfx.cmake.git
-    GIT_TAG        master
+add_executable(${PROJECT_NAME} main.cpp)
+target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_23)
+
+# CPM
+file(
+        DOWNLOAD
+        https://github.com/cpm-cmake/CPM.cmake/releases/download/v0.38.3/CPM.cmake
+        ${CMAKE_CURRENT_BINARY_DIR}/cmake/CPM.cmake
+        EXPECTED_HASH SHA256=cc155ce02e7945e7b8967ddfaff0b050e958a723ef7aad3766d368940cb15494
 )
+include(${CMAKE_CURRENT_BINARY_DIR}/cmake/CPM.cmake)
+
+set(LIBS)
 
 
-FetchContent_Declare(
-  glfw
-  GIT_REPOSITORY https://github.com/glfw/glfw.git
-  GIT_TAG        master
-)
-FetchContent_MakeAvailable(bgfx.cmake glfw)
+## Dependencies
 
-# Define your executable
-add_executable(bgfx_app main.cpp)
+# SDL
+CPMAddPackage("gh:libsdl-org/SDL#4c70aa3")
+list(APPEND LIBS SDL3::SDL3)
+if (imgui_ADDED)
+    target_link_libraries(imgui PRIVATE SDL3::SDL3)
+endif ()
 
-# Link bgfx (which automatically pulls in bx and bimg dependencies)
-target_link_libraries(bgfx_app PRIVATE
-        bgfx      # Core bgfx library
-        bimg      # Image library dependency
-        bx        # Base utility library dependency
-        glfw      # GLFW windowing)
-)
+# SDL_image
+# set(SDLIMAGE_AVIF OFF CACHE BOOL "" FORCE) # Requires Perl and Nasm for libaom (AVIF image format)
+CPMAddPackage("gh:libsdl-org/SDL_image#bcc97c0")
+list(APPEND LIBS SDL3_image::SDL3_image)
 
-if(WIN32)
-    target_compile_definitions(bgfx_app PRIVATE GLFW_EXPOSE_NATIVE_WIN32)
-elseif(APPLE)
-    target_compile_definitions(bgfx_app PRIVATE GLFW_EXPOSE_NATIVE_COCOA)
-else()
-    # Assuming Linux X11, adjust to WAYLAND if needed
-    target_compile_definitions(bgfx_app PRIVATE GLFW_EXPOSE_NATIVE_X11)
-endif()
+# flecs
+CPMAddPackage("gh:SanderMertens/flecs#befc214")
+list(APPEND LIBS flecs::flecs)
 
-# If __unaligned is required for MSVC only, set it on the target:
-if(MSVC)
-    target_compile_definitions(bgfx_app PRIVATE __unaligned=)
-endif()
+# SQLite
+CPMAddPackage("gh:SRombauts/SQLiteCpp#643b153")
+list(APPEND LIBS SQLiteCpp)
+
+target_link_libraries(${PROJECT_NAME} PRIVATE ${LIBS})

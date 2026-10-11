@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  test-sdl3-app:
+  build-android-app:
     runs-on: macos-latest # or ubuntu-latest with KVM enabled
     steps:
       - name: Checkout code

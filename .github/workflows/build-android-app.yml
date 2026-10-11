@@ -7,7 +7,11 @@ on:
 
 jobs:
   build-android-app:
-    runs-on: macos-latest # or ubuntu-latest with KVM enabled
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        api-level: [21, 23, 29]
+        target: [default, google_apis]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -29,14 +33,19 @@ jobs:
           ./gradlew assembleDebug
         working-directory: android
 
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
       - name: Run Android Emulator and Execute Script
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 33
-          target: google_apis
-          arch: arm64-v8a
-          profile: pixel_3a
-          disable-animations: true
+          api-level: ${{ matrix.api-level }}
+          target: ${{ matrix.target }}
+          arch: x86_64
+          profile: pixel_7_pro
           script: |
             # Wait for device to be fully booted
             adb wait-for-device

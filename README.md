@@ -1,2 +1,2 @@
-# Game
-Example game made with bgfx
+# Snake
+Snake game programmed with SDL3

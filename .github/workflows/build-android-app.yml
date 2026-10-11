@@ -29,6 +29,24 @@ jobs:
           ./gradlew assembleDebug
         working-directory: android
 
+      - name: Wait for Emulator to Boot
+        run: |
+          adb wait-for-device
+          BOOT_COMPLETED=""
+          TIMEOUT=300
+          COUNTER=0
+          
+          while [ "$BOOT_COMPLETED" != "1" ]; do
+            if [ $COUNTER -gt $TIMEOUT ]; then
+              echo "Timeout waiting for emulator to boot."
+              exit 1
+            fi
+            sleep 2
+            BOOT_COMPLETED=$(adb shell getprop sys.boot_completed | tr -d '\r')
+            COUNTER=$((COUNTER + 2))
+          done
+          echo "Emulator is fully booted!"
+
       - name: Run Android Emulator and Execute Script
         uses: reactivecircus/android-emulator-runner@v2
         with:

@@ -11,8 +11,8 @@
 #include <tuple>
 #include <vector>
 
-const int GRID_WIDTH = 20;
-const int GRID_HEIGHT = 20;
+const int GRID_WIDTH = 30;
+const int GRID_HEIGHT = 30;
 const int CELL_SIZE = 30;
 const int WINDOW_WIDTH = GRID_WIDTH * CELL_SIZE;
 const int WINDOW_HEIGHT = GRID_HEIGHT * CELL_SIZE;

@@ -14,6 +14,8 @@
 const int GRID_WIDTH = 20;
 const int GRID_HEIGHT = 20;
 const int CELL_SIZE = 30;
+const int WINDOW_WIDTH = GRID_WIDTH * CELL_SIZE;
+const int WINDOW_HEIGHT = GRID_HEIGHT * CELL_SIZE;
 
 struct Point {
     int x, y;
@@ -22,6 +24,7 @@ struct Point {
 
 enum Direction { UP = 0, RIGHT = 1, DOWN = 2, LEFT = 3 };
 enum Action { STRAIGHT = 0, TURN_RIGHT = 1, TURN_LEFT = 2 };
+enum GameMode { MENU, MANUAL, TRAINING, AI_PLAY };
 
 class NeuralNetwork {
 public:
@@ -303,8 +306,8 @@ public:
         sync_target_network();
     }
 
-    Action get_action(const std::vector<float>& state) {
-        if ((float)rand() / RAND_MAX < epsilon) {
+    Action get_action(const std::vector<float>& state, bool training = true) {
+        if (training && (float)rand() / RAND_MAX < epsilon) {
             return static_cast<Action>(rand() % 3);
         }
 
@@ -371,6 +374,67 @@ public:
     }
 };
 
+void draw_menu(SDL_Renderer* renderer, int selected_option) {
+    SDL_SetRenderDrawColor(renderer, 30, 30, 30, 255);
+    SDL_RenderClear(renderer);
+
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+
+    // Title
+    SDL_FRect title_rect = {50, 50, 300, 60};
+    SDL_SetRenderDrawColor(renderer, 100, 200, 255, 255);
+    SDL_RenderFillRect(renderer, &title_rect);
+
+    // Option 1: Manual
+    SDL_FRect option1_rect = {50, 150, 300, 50};
+    SDL_SetRenderDrawColor(renderer, selected_option == 0 ? 100, 255, 100 : 100, 150, 100, 255);
+    SDL_RenderFillRect(renderer, &option1_rect);
+
+    // Option 2: Training
+    SDL_FRect option2_rect = {50, 250, 300, 50};
+    SDL_SetRenderDrawColor(renderer, selected_option == 1 ? 100, 255, 100 : 100, 150, 100, 255);
+    SDL_RenderFillRect(renderer, &option2_rect);
+
+    // Option 3: AI Play
+    SDL_FRect option3_rect = {50, 350, 300, 50};
+    SDL_SetRenderDrawColor(renderer, selected_option == 2 ? 100, 255, 100 : 100, 150, 100, 255);
+    SDL_RenderFillRect(renderer, &option3_rect);
+
+    SDL_RenderPresent(renderer);
+}
+
+void draw_game(SDL_Renderer* renderer, SnakeGame& game) {
+    SDL_SetRenderDrawColor(renderer, 30, 30, 30, 255);
+    SDL_RenderClear(renderer);
+
+    SDL_SetRenderDrawColor(renderer, 255, 50, 50, 255);
+    SDL_FRect food_rect = {
+        (float)(game.food.x * CELL_SIZE),
+        (float)(game.food.y * CELL_SIZE),
+        (float)CELL_SIZE,
+        (float)CELL_SIZE
+    };
+    SDL_RenderFillRect(renderer, &food_rect);
+
+    for (size_t i = 0; i < game.snake.size(); ++i) {
+        if (i == 0) {
+            SDL_SetRenderDrawColor(renderer, 50, 255, 50, 255);
+        } else {
+            SDL_SetRenderDrawColor(renderer, 30, 150, 30, 255);
+        }
+
+        SDL_FRect snake_rect = {
+            (float)(game.snake[i].x * CELL_SIZE + 1),
+            (float)(game.snake[i].y * CELL_SIZE + 1),
+            (float)(CELL_SIZE - 2),
+            (float)(CELL_SIZE - 2)
+        };
+        SDL_RenderFillRect(renderer, &snake_rect);
+    }
+
+    SDL_RenderPresent(renderer);
+}
+
 int main(int argc, char* argv[]) {
     srand(static_cast<unsigned>(time(nullptr)));
 
@@ -381,9 +445,9 @@ int main(int argc, char* argv[]) {
 
     SDL_Window* window = nullptr;
     SDL_Renderer* renderer = nullptr;
-    if (!SDL_CreateWindowAndRenderer("Snake DQN (SDL3) - Press SPACE to toggle speed",
-                                     GRID_WIDTH * CELL_SIZE,
-                                     GRID_HEIGHT * CELL_SIZE,
+    if (!SDL_CreateWindowAndRenderer("Snake DQN (SDL3)",
+                                     WINDOW_WIDTH,
+                                     WINDOW_HEIGHT,
                                      0,
                                      &window,
                                      &renderer)) {
@@ -392,13 +456,21 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
+    GameMode mode = MENU;
+    int menu_selection = 0;
+    bool quit = false;
+
     SnakeGame game;
     DQNAgent agent;
 
-    bool quit = false;
-    bool render = true;
-    int delay_ms = 40;
     int episode = 1;
+    int frame_count = 0;
+    const int FRAME_RATE = 60;
+    const int MANUAL_DELAY = 100; // ms per move
+    const int TRAINING_DELAY = 0;
+    const int AI_DELAY = 100;
+
+    uint32_t last_move_time = SDL_GetTicks();
 
     while (!quit) {
         SDL_Event event;
@@ -406,66 +478,102 @@ int main(int argc, char* argv[]) {
             if (event.type == SDL_EVENT_QUIT) {
                 quit = true;
             } else if (event.type == SDL_EVENT_KEY_DOWN) {
-                if (event.key.key == SDLK_ESCAPE) quit = true;
-                if (event.key.key == SDLK_SPACE) {
-                    render = !render;
-                    delay_ms = render ? 40 : 0;
-                    std::cout << "Rendering: " << (render ? "ON" : "OFF") << std::endl;
+                if (event.key.key == SDLK_ESCAPE) {
+                    if (mode != MENU) {
+                        mode = MENU;
+                        menu_selection = 0;
+                    } else {
+                        quit = true;
+                    }
+                } else if (mode == MENU) {
+                    if (event.key.key == SDLK_UP) {
+                        menu_selection = (menu_selection - 1 + 3) % 3;
+                    } else if (event.key.key == SDLK_DOWN) {
+                        menu_selection = (menu_selection + 1) % 3;
+                    } else if (event.key.key == SDLK_RETURN || event.key.key == SDLK_SPACE) {
+                        if (menu_selection == 0) mode = MANUAL;
+                        else if (menu_selection == 1) mode = TRAINING;
+                        else if (menu_selection == 2) mode = AI_PLAY;
+                        game.reset();
+                        agent.epsilon = 1.0f;
+                        episode = 1;
+                        last_move_time = SDL_GetTicks();
+                    }
+                } else if (mode == MANUAL) {
+                    if (event.key.key == SDLK_UP && game.dir != DOWN) game.dir = UP;
+                    else if (event.key.key == SDLK_DOWN && game.dir != UP) game.dir = DOWN;
+                    else if (event.key.key == SDLK_LEFT && game.dir != RIGHT) game.dir = LEFT;
+                    else if (event.key.key == SDLK_RIGHT && game.dir != LEFT) game.dir = RIGHT;
                 }
             }
         }
 
-        std::vector<float> state = game.get_state_vector();
-        Action action = agent.get_action(state);
-        float reward = game.step(action);
-        std::vector<float> next_state = game.get_state_vector();
+        if (mode == MENU) {
+            draw_menu(renderer, menu_selection);
+        } else if (mode == MANUAL) {
+            uint32_t current_time = SDL_GetTicks();
+            if (current_time - last_move_time >= MANUAL_DELAY) {
+                Point next_head = game.snake.front();
+                if (game.dir == UP) next_head.y -= 1;
+                else if (game.dir == RIGHT) next_head.x += 1;
+                else if (game.dir == DOWN) next_head.y += 1;
+                else if (game.dir == LEFT) next_head.x -= 1;
 
-        agent.store_transition(state, action, reward, next_state, game.game_over);
-        agent.train();
+                game.step(STRAIGHT);
 
-        if (game.game_over) {
-            agent.decay_epsilon();
-            if (episode % 50 == 0) {
-                std::cout << "Episode: " << episode
-                          << " | Score: " << game.score
-                          << " | Epsilon: " << agent.epsilon
-                          << std::endl;
-            }
-            game.reset();
-            ++episode;
-        }
-
-        if (render) {
-            SDL_SetRenderDrawColor(renderer, 30, 30, 30, 255);
-            SDL_RenderClear(renderer);
-
-            SDL_SetRenderDrawColor(renderer, 255, 50, 50, 255);
-            SDL_FRect food_rect = {
-                (float)(game.food.x * CELL_SIZE),
-                (float)(game.food.y * CELL_SIZE),
-                (float)CELL_SIZE,
-                (float)CELL_SIZE
-            };
-            SDL_RenderFillRect(renderer, &food_rect);
-
-            for (size_t i = 0; i < game.snake.size(); ++i) {
-                if (i == 0) {
-                    SDL_SetRenderDrawColor(renderer, 50, 255, 50, 255);
-                } else {
-                    SDL_SetRenderDrawColor(renderer, 30, 150, 30, 255);
+                if (game.game_over) {
+                    std::cout << "Game Over! Score: " << game.score << std::endl;
+                    game.reset();
                 }
 
-                SDL_FRect snake_rect = {
-                    (float)(game.snake[i].x * CELL_SIZE + 1),
-                    (float)(game.snake[i].y * CELL_SIZE + 1),
-                    (float)(CELL_SIZE - 2),
-                    (float)(CELL_SIZE - 2)
-                };
-                SDL_RenderFillRect(renderer, &snake_rect);
+                last_move_time = current_time;
             }
 
-            SDL_RenderPresent(renderer);
-            SDL_Delay(delay_ms);
+            draw_game(renderer, game);
+            SDL_Delay(16); // ~60 FPS
+        } else if (mode == TRAINING) {
+            std::vector<float> state = game.get_state_vector();
+            Action action = agent.get_action(state, true);
+            float reward = game.step(action);
+            std::vector<float> next_state = game.get_state_vector();
+
+            agent.store_transition(state, action, reward, next_state, game.game_over);
+            agent.train();
+
+            if (game.game_over) {
+                agent.decay_epsilon();
+                if (episode % 50 == 0) {
+                    std::cout << "Episode: " << episode
+                              << " | Score: " << game.score
+                              << " | Epsilon: " << agent.epsilon
+                              << std::endl;
+                }
+                game.reset();
+                ++episode;
+            }
+
+            if (episode % 10 == 0) {
+                draw_game(renderer, game);
+            }
+            SDL_Delay(TRAINING_DELAY);
+        } else if (mode == AI_PLAY) {
+            uint32_t current_time = SDL_GetTicks();
+            if (current_time - last_move_time >= AI_DELAY) {
+                std::vector<float> state = game.get_state_vector();
+                Action action = agent.get_action(state, false);
+                game.step(action);
+
+                if (game.game_over) {
+                    std::cout << "AI Game Over! Score: " << game.score << std::endl;
+                    game.reset();
+                    episode++;
+                }
+
+                last_move_time = current_time;
+            }
+
+            draw_game(renderer, game);
+            SDL_Delay(16); // ~60 FPS
         }
     }
 

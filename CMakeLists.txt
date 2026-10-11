@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
-project(Game
+project(Snake
         VERSION 1.0.0 
-        DESCRIPTION "A simple C++ project"
+        DESCRIPTION "Snake game"
         LANGUAGES CXX)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)

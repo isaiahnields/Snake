@@ -38,3 +38,4 @@
 /.vs/*
 /_deps/*
 /external/*
+vendored/SDL/

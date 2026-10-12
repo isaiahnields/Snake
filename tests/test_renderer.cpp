@@ -1,6 +1,6 @@
 #include "test_helpers.h"
 
-#include "renderer.h"
+#include "../src/renderer.h"
 
 #include <SDL3/SDL.h>
 

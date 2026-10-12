@@ -1,6 +1,6 @@
 #include "test_helpers.h"
 
-#include "neural_network.h"
+#include "../src/neural_network.h"
 
 #include <cmath>
 

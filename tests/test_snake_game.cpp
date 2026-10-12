@@ -1,7 +1,7 @@
 #include "test_helpers.h"
 
-#include "game_types.h"
-#include "snake_game.h"
+#include "../src/game_types.h"
+#include "../src/snake_game.h"
 
 static void test_reset() {
     SnakeGame g;

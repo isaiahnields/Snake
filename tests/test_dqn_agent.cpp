@@ -1,6 +1,6 @@
 #include "test_helpers.h"
 
-#include "dqn_agent.h"
+#include "../src/dqn_agent.h"
 
 #include <cmath>
 

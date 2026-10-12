@@ -9,7 +9,7 @@ static const std::vector<float> S = {1, 0, 0, 1, 0, 0, 0};
 
 static void test_init() {
     DQNAgent a;
-    CHECK(a.epsilon - 1.0f);
+    CHECK(a.epsilon == 1.0f);
     CHECK(a.policy_net.learning_rate == a.learning_rate);
     CHECK(a.policy_net.weights == a.target_net.weights);
     CHECK(a.policy_net.biases == a.target_net.biases);

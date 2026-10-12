@@ -1,2 +1,2 @@
 # Snake
-Snake game programmed with SDL3
+Cross-platform Snake game with neural network AI players

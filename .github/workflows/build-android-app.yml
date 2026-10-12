@@ -69,7 +69,6 @@ jobs:
             # Launch your SDL3 activity (replace with your package and activity name)
             ACTIVITY_PATH=$(/usr/local/lib/android/sdk/platform-tools/adb shell cmd package resolve-activity --brief com.isaiahnields.snake | tail -n 1); /usr/local/lib/android/sdk/platform-tools/adb shell am start -n "$ACTIVITY_PATH"
 
-            
             # Wait a few seconds for the SDL3 surface/renderer to render frames
             sleep 5
             

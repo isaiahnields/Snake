@@ -6,7 +6,7 @@ on:
   pull_request:
   workflow_dispatch:
 jobs:
-  build:
+  cmake-dekstop-apps:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false

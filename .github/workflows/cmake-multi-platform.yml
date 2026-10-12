@@ -141,31 +141,38 @@ jobs:
       if: runner.os == 'Windows'
       shell: pwsh
       run: |
-        # Download and place Mesa software rasterizer (opengl32.dll) in the same directory as your executable
+        # 1. Download a genuine Mesa distribution release (adjust version/link as needed)
+        # Using a placeholder URL—ensure you target a valid release asset .7z file
         Invoke-WebRequest -Uri "https://github.com" -OutFile "mesa.7z"
-        # (Extract the opengl32.dll file using 7z or Expand-Archive and copy it to .\build\Release\)
         7z e mesa.7z x64/opengl32.dll -o".\build\Release\" -y
 
-        # Start your process safely
+        # 2. Asynchronously start your application
         $process = Start-Process -FilePath ".\build\Release\snake.exe" -PassThru
         
-        # Instead of sleep, loop until the Window Handle is generated and active
-        while ($process.MainWindowHandle -eq 0) { Start-Sleep -m 500 }
-        Start-Sleep -s 5 # Additional buffer time for initial frames to complete
-        
-        # Capture screen via forms
-        Add-Type -AssemblyName System.Windows.Forms
+        # 3. Use a static time-buffer instead of checking MainWindowHandle
+        Start-Sleep -s 8
+
+        # 4. Use a reliable GDI+ capture that doesn't rely on Windows.Forms.Screen bounds
         Add-Type -AssemblyName System.Drawing
-        $Screen = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
-        $Bitmap = New-Object System.Drawing.Bitmap $Screen.Width, $Screen.Height
+        
+        # Define fallback virtual desktop coordinates (standard runner layout sizing)
+        $Width  = 1920
+        $Height = 1080
+        
+        $Bitmap   = New-Object System.Drawing.Bitmap $Width, $Height
         $Graphics = [System.Drawing.Graphics]::FromImage($Bitmap)
-        $Graphics.CopyFromScreen($Screen.Location, [System.Drawing.Point]::Empty, $Screen.Size)
+        
+        # Attempt to copy frame buffer from coordinates
+        $Graphics.CopyFromScreen(0, 0, 0, 0, New-Object System.Drawing.Size($Width, $Height))
+        
+        # Save screenshot using your matrix context variables
         $Bitmap.Save("$PWD\screenshot--${{ matrix.os }}--${{ matrix.c_compiler }}--${{ matrix.cpp_compiler }}.png")
         
-        # Clean up
+        # 5. Clean up objects and forcefully terminate the executable
         $Graphics.Dispose()
         $Bitmap.Dispose()
         Stop-Process -Id $process.Id -Force
+
 
       # --- Upload Screenshots as Artifacts ---
     - name: Upload Screenshots

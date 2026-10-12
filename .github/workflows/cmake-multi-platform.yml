@@ -114,7 +114,7 @@ jobs:
       run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }}
 
       # --- UBUNTU / LINUX: Use Xvfb to run GUI and capture screenshot ---
-    - name: Run GUI & Capture Screenshot (Ubuntu)
+    - name: Run GUI (Ubuntu)
       if: runner.os == 'Linux'
       run: |
           sudo apt-get update
@@ -123,63 +123,28 @@ jobs:
           export DISPLAY=:99
           # Run your program in the background
           ./build/snake &
-          sleep 10
-          scrot screenshot--${{ matrix.os }}--${{ matrix.c_compiler }}--${{ matrix.cpp_compiler }}.png
+          sleep 5
 
       # --- MACOS: Run GUI and capture screenshot ---
-    - name: Run GUI & Capture Screenshot (macOS)
+    - name: Run GUI (macOS)
       if: runner.os == 'macOS'
       run: |
           # Launch app in background (adjust path to your executable)
           ./build/Snake.app/Contents/MacOS/Snake &
-          sleep 10
-          # Capture main screen using screencapture
-          screencapture -x screenshot--${{ matrix.os }}--${{ matrix.c_compiler }}--${{ matrix.cpp_compiler }}.png
+          sleep 5
           
-      # --- WINDOWS: Run GUI and capture screenshot (using PowerShell/.NET or tool) ---
-      # --- WINDOWS: Run GUI and capture screenshot (using PowerShell/.NET or tool) ---
-    - name: Run GUI & Capture Screenshot (Windows)
+      # --- WINDOWS: Run GUI and capture screenshot (using PowerShell/.NET or tool) ---      
+    - name: Run GUI (Windows)
       if: runner.os == 'Windows'
       shell: pwsh
       run: |
-        # 1. Download a genuine Mesa distribution release from an authorized source
-        $MesaUrl = "https://github.com/pal1000/mesa-dist-win/releases/download/26.2.4/mesa3d-26.2.4-release-msvc.7z"
-        Invoke-WebRequest -Uri $MesaUrl -OutFile "mesa.7z"
-        
-        # Extract just the opengl32.dll needed for software rendering
-        7z e mesa.7z x64/opengl32.dll -o".\build\Release\" -y
+        Start-Process -FilePath ".\build\Release\snake.exe"
+        Start-Sleep -Seconds 5  # Give the app window time to open and render
 
-        # 2. Asynchronously start your application
-        $process = Start-Process -FilePath ".\build\Release\snake.exe" -PassThru
-        
-        # 3. Use a static time-buffer instead of checking MainWindowHandle
-        Start-Sleep -Seconds 8
-
-        # 4. Use a reliable GDI+ capture that doesn't rely on Windows.Forms.Screen bounds
-        Add-Type -AssemblyName System.Drawing
-        
-        # Define fallback virtual desktop coordinates (standard runner layout sizing)
-        $Width  = 1920
-        $Height = 1080
-        
-        $Bitmap   = New-Object System.Drawing.Bitmap $Width, $Height
-        $Graphics = [System.Drawing.Graphics]::FromImage($Bitmap)
-        
-        # Corrected: Removed invalid comma syntax after New-Object
-        $BoundsSize = New-Object System.Drawing.Size($Width, $Height)
-        
-        # Attempt to copy frame buffer from coordinates
-        $Graphics.CopyFromScreen(0, 0, 0, 0, $BoundsSize)
-        
-        # Save screenshot using your matrix context variables
-        $Bitmap.Save("$PWD\screenshot--${{ matrix.os }}--${{ matrix.c_compiler }}--${{ matrix.cpp_compiler }}.png")
-        
-        # 5. Clean up objects and forcefully terminate the executable
-        $Graphics.Dispose()
-        $Bitmap.Dispose()
-        Stop-Process -Id $process.Id -Force
-
-
+    - name: Take Desktop Screenshot
+      uses: nwtgck/create-desktop-screenshot-action@v1
+      with:
+        name: screenshot-${{ matrix.os }}-${{ matrix.c_compiler }}-${{ matrix.cpp_compiler }}.png
 
       # --- Upload Screenshots as Artifacts ---
     - name: Upload Screenshots

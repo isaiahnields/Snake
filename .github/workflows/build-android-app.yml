@@ -23,7 +23,7 @@ jobs:
           distribution: 'zulu'
 
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
         with:
           packages: 'cmdline-tools;latest platform-tools platforms;android-34 build-tools;34.0.0'
 

@@ -79,5 +79,5 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           archive: false
-          name: android-screenshot
+          name: android-screenshot-${{ matrix.api-level }}-${{ matrix.target }}
           path: screenshot.png

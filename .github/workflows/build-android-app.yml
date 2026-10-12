@@ -56,7 +56,7 @@ jobs:
             adb install -r app/build/outputs/apk/debug/app-debug.apk
             
             # Launch your SDL3 activity (replace with your package and activity name)
-            adb shell am start -n "com.example.sdl3app/.MainActivity"
+            adb shell am start -n "com.isaiahnields.snake/.MainActivity"
             
             # Wait a few seconds for the SDL3 surface/renderer to render frames
             sleep 5

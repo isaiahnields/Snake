@@ -131,7 +131,7 @@ jobs:
       if: runner.os == 'macOS'
       run: |
           # Launch app in background (adjust path to your executable)
-          ./build/snake.app/Contents/MacOS/snake &
+          ./build/Snake.app/Contents/MacOS/Snake &
           sleep 10
           # Capture main screen using screencapture
           screencapture -x screenshot-${{ matrix.os }}-${{ matrix.c_compiler }}-${{ matrix.cpp_compiler }}.png

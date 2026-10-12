@@ -144,6 +144,7 @@ jobs:
         # Download and place Mesa software rasterizer (opengl32.dll) in the same directory as your executable
         Invoke-WebRequest -Uri "https://github.com" -OutFile "mesa.7z"
         # (Extract the opengl32.dll file using 7z or Expand-Archive and copy it to .\build\Release\)
+        7z e mesa.7z x64/opengl32.dll -o".\build\Release\" -y
 
         # Start your process safely
         $process = Start-Process -FilePath ".\build\Release\snake.exe" -PassThru

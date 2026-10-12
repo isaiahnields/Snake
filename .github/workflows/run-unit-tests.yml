@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
 jobs:
   run-unit-tests:
-    name: test_${{ matrix.test }} (${{ matrix.os }})
+    name: Run test_${{ matrix.test }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false

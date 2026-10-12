@@ -5,10 +5,10 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/$<CONFIGURATION>")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/$<CONFIGURATION>")
 
 # 1. Bring in SDL3 (if you downloaded the .aar, use find_package instead)
-if(NOT ANDROID)
-    add_subdirectory(vendored/SDL EXCLUDE_FROM_ALL)
-else()
+if(ANDROID)
     find_package(SDL3 REQUIRED CONFIG)
+else()
+    add_subdirectory(vendored/SDL EXCLUDE_FROM_ALL)
 endif()
 
 # 2. Define your source files

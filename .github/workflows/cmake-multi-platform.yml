@@ -124,7 +124,7 @@ jobs:
           # Run your program in the background
           ./build/snake &
           sleep 3
-          scrot screenshot-ubuntu.png
+          scrot screenshot-${{ matrix.os }}-${{ matrix.c_compiler }}-${{ matrix.cpp_compiler }}.png
 
       # --- MACOS: Run GUI and capture screenshot ---
     - name: Run GUI & Capture Screenshot (macOS)
@@ -134,7 +134,7 @@ jobs:
           ./build/snake.app/Contents/MacOS/snake &
           sleep 3
           # Capture main screen using screencapture
-          screencapture -x screenshot-macos.png
+          screencapture -x screenshot-${{ matrix.os }}-${{ matrix.c_compiler }}-${{ matrix.cpp_compiler }}.png
           
       # --- WINDOWS: Run GUI and capture screenshot (using PowerShell/.NET or tool) ---
     - name: Run GUI & Capture Screenshot (Windows)
@@ -150,7 +150,7 @@ jobs:
           $Bitmap = New-Object System.Drawing.Bitmap $Screen.Width, $Screen.Height
           $Graphics = [System.Drawing.Graphics]::FromImage($Bitmap)
           $Graphics.CopyFromScreen($Screen.Location, [System.Drawing.Point]::Empty, $Screen.Size)
-          $Bitmap.Save("$PWD\screenshot-windows.png")
+          $Bitmap.Save("$PWD\screenshot-${{ matrix.os }}-${{ matrix.c_compiler }}-${{ matrix.cpp_compiler }}.png")
           $Graphics.Dispose()
           $Bitmap.Dispose()
 

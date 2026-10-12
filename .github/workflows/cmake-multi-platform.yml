@@ -142,7 +142,7 @@ jobs:
         Start-Sleep -Seconds 5  # Give the app window time to open and render
 
     - name: Take Desktop Screenshot
-      uses: nwtgck/create-desktop-screenshot-action@v1
+      uses: OrbitalOwen/desktop-screenshot-action@0.1
       with:
         file-name: screenshot-${{ matrix.os }}-${{ matrix.c_compiler }}-${{ matrix.cpp_compiler }}.png
 

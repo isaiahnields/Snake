@@ -114,7 +114,7 @@ jobs:
       run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }}
 
       # --- UBUNTU / LINUX: Use Xvfb to run GUI and capture screenshot ---
-    - name: Run GUI (Ubuntu)
+    - name: Run GUI & Capture Screenshot (Ubuntu)
       if: runner.os == 'Linux'
       run: |
           sudo apt-get update
@@ -126,7 +126,7 @@ jobs:
           sleep 5
 
       # --- MACOS: Run GUI and capture screenshot ---
-    - name: Run GUI (macOS)
+    - name: Run GUI & Capture Screenshot (macOS)
       if: runner.os == 'macOS'
       run: |
           # Launch app in background (adjust path to your executable)
@@ -134,24 +134,19 @@ jobs:
           sleep 5
           
       # --- WINDOWS: Run GUI and capture screenshot (using PowerShell/.NET or tool) ---      
-    - name: Run GUI (Windows)
+    - name: Run GUI & Capture Screenshot (Windows)
       if: runner.os == 'Windows'
       shell: pwsh
       run: |
         Start-Process -FilePath ".\build\Release\snake.exe"
         Start-Sleep -Seconds 5  # Give the app window time to open and render
 
-    - name: Take Desktop Screenshot
-      uses: OrbitalOwen/desktop-screenshot-action@0.1
-      with:
-        file-name: screenshot-${{ matrix.os }}-${{ matrix.c_compiler }}-${{ matrix.cpp_compiler }}.png
-
       # --- Upload Screenshots as Artifacts ---
-    - name: Upload Screenshots
-      uses: actions/upload-artifact@v7
-      with:
-        archive: false
-        path: screenshot-${{ matrix.os }}-${{ matrix.c_compiler }}-${{ matrix.cpp_compiler }}.png
+    # - name: Upload Screenshots
+    #   uses: actions/upload-artifact@v7
+    #   with:
+    #     archive: false
+    #     path: screenshot-${{ matrix.os }}-${{ matrix.c_compiler }}-${{ matrix.cpp_compiler }}.png
 
     - name: Test
       working-directory: ${{ steps.strings.outputs.build-output-dir }}

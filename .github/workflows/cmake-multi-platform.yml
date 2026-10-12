@@ -163,7 +163,7 @@ jobs:
         $Graphics = [System.Drawing.Graphics]::FromImage($Bitmap)
         
         # Attempt to copy frame buffer from coordinates
-        $Graphics.CopyFromScreen(0, 0, 0, 0, New-Object System.Drawing.Size($Width, $Height))
+        $Graphics.CopyFromScreen(0, 0, 0, 0, New-Object, System.Drawing.Size($Width, $Height))
         
         # Save screenshot using your matrix context variables
         $Bitmap.Save("$PWD\screenshot--${{ matrix.os }}--${{ matrix.c_compiler }}--${{ matrix.cpp_compiler }}.png")

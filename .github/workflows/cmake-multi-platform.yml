@@ -132,8 +132,24 @@ jobs:
           throw "Executable not found: $exe"
         }
         
-        Start-Process -FilePath $exe -NoNewWindow
-        Start-Sleep -Seconds 5
+        $process = Start-Process -FilePath $exe -PassThru
+        $startupDeadline = [DateTime]::UtcNow.AddSeconds(60)
+        do {
+          $process.Refresh()
+          if ($process.HasExited) {
+            throw "Snake exited during startup with code $($process.ExitCode)"
+          }
+          if ($process.MainWindowHandle -ne [IntPtr]::Zero) {
+            break
+          }
+          Start-Sleep -Milliseconds 500
+        } while ([DateTime]::UtcNow -lt $startupDeadline)
+
+        if ($process.MainWindowHandle -eq [IntPtr]::Zero) {
+          throw "Snake did not create a window within 60 seconds"
+        }
+
+        Start-Sleep -Seconds 10
 
         Add-Type -AssemblyName System.Drawing
         Add-Type -AssemblyName System.Windows.Forms

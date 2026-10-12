@@ -1,10 +1,10 @@
-name: Run tests
+name: Run unit tests
 on:
   push:
   pull_request:
   workflow_dispatch:
 jobs:
-  run-tests:
+  run-unit-tests:
     name: test_${{ matrix.test }} (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:

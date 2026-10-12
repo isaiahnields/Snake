@@ -141,6 +141,10 @@ jobs:
       if: runner.os == 'Windows'
       shell: pwsh
       run: |
+        # Download and place Mesa software rasterizer (opengl32.dll) in the same directory as your executable
+        Invoke-WebRequest -Uri "https://github.com" -OutFile "mesa.7z"
+        # (Extract the opengl32.dll file using 7z or Expand-Archive and copy it to .\build\Release\)
+
         # 1. Start your game in the background
         $process = Start-Process -FilePath ".\build\Release\snake.exe" -PassThru
         

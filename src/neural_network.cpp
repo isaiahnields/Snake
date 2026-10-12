@@ -3,8 +3,8 @@
 #include <random>
 #include <utility>
 
-NeuralNetwork::NeuralNetwork(std::vector<int> sizes, float lr)
-    : layer_sizes(std::move(sizes)), learning_rate(lr) {
+NeuralNetwork::NeuralNetwork(std::vector<int> sizes, float learning_rate)
+    : layer_sizes(std::move(sizes)), learning_rate(learning_rate) {
     std::mt19937 rng(std::random_device{}());
     std::normal_distribution<float> dist(0.0f, 0.1f);
 

@@ -16,12 +16,12 @@ struct Transition {
 
 class DQNAgent {
 public:
+    float learning_rate = 0.001f;
     NeuralNetwork policy_net;
     NeuralNetwork target_net;
     std::deque<Transition> replay_buffer;
     const size_t REPLAY_CAPACITY = 2000;
     const size_t BATCH_SIZE = 32;
-    float learning_rate = 0.001f;
     float gamma = 0.95f;
     float epsilon = 1.0f;
     float epsilon_decay = 0.995f;

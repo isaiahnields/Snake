@@ -24,7 +24,7 @@ static void test_construction() {
 }
 
 static void test_forward_known_weights() {
-    NeuralNetwork nn({2, 2, 1});
+    NeuralNetwork nn({2, 2, 1}, 0.01f);
     nn.weights = {{{1.0f, -1.0f}, {0.5f, 0.5f}}, {{2.0f, 3.0f}}};
     nn.biases = {{0.0f, 0.0f}, {1.0f}};
     // hidden = relu([1-2, 0.5+1]) = [0, 1.5]; out = 3*1.5 + 1 = 5.5

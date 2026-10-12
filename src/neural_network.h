@@ -9,7 +9,7 @@ public:
     std::vector<std::vector<float>> biases;
     float learning_rate;
 
-    NeuralNetwork(std::vector<int> sizes, float lr = 0.001f);
+    NeuralNetwork(std::vector<int> sizes, float learning_rate);
 
     static float relu(float x);
     static float relu_derivative(float x);

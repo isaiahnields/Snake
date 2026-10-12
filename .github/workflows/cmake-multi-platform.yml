@@ -159,7 +159,7 @@ jobs:
       uses: actions/upload-artifact@v7
       with:
         archive: false
-        name: program-screenshots-${{ matrix.os }}
+        name: program-screenshots-${{ matrix.os }}-${{ matrix.c_compiler }}-${{ matrix.cpp_compiler }}
         path: |
           screenshot-*.png
 

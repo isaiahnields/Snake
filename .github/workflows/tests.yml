@@ -1,0 +1,50 @@
+name: Tests
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+jobs:
+  test:
+    name: test_${{ matrix.test }} (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        test: [snake_game, neural_network, dqn_agent, renderer]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libx11-dev libxext-dev
+
+      - name: Configure
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Debug
+
+      - name: Build test_${{ matrix.test }}
+        run: cmake --build build --config Debug --target test_${{ matrix.test }}
+
+      - name: Run ${{ matrix.test }} test
+        run: ctest --test-dir build -C Debug -R "^${{ matrix.test }}$" --output-on-failure --no-tests=error
+
+  build-main:
+    # src/main.cpp is the SDL entry point and cannot be unit tested; verify it compiles and links.
+    name: build main.cpp (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libx11-dev libxext-dev
+
+      - name: Configure
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Debug
+
+      - name: Build snake
+        run: cmake --build build --config Debug --target snake

@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 jobs:
   cmake-dekstop-apps:
-    name: CMake (${{ matrix.os }}) app [C compiler = ${{ matrix.c_compiler }}, C++ compiler = ${{ matrix.cpp_compiler }}]
+    name: CMake ${{ matrix.os }} app [C compiler = ${{ matrix.c_compiler }}, C++ compiler = ${{ matrix.cpp_compiler }}]
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false

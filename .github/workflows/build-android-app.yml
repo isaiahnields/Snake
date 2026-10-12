@@ -72,11 +72,8 @@ jobs:
             # Wait a few seconds for the SDL3 surface/renderer to render frames
             sleep 5
             
-            # Capture screenshot inside the emulator
+            # Capture screenshot
             /usr/local/lib/android/sdk/platform-tools/adb shell screencap -p > ../screenshot.png
-            
-            # Pull the screenshot out to the GitHub Actions workspace
-            /usr/local/lib/android/sdk/platform-tools/adb pull /sdcard/screenshot.png ../screenshot.png
 
       - name: Upload Screenshot Artifact
         uses: actions/upload-artifact@v4

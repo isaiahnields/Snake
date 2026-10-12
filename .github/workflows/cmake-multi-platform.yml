@@ -142,7 +142,7 @@ jobs:
       shell: pwsh
       run: |
         # 1. Download a genuine Mesa distribution release (adjust version/link as needed)
-        # Using a placeholder URL—ensure you target a valid release asset .7z file
+        # TODO: Replace the placeholder below with a direct link to a valid mesa3d .7z file
         Invoke-WebRequest -Uri "https://github.com" -OutFile "mesa.7z"
         7z e mesa.7z x64/opengl32.dll -o".\build\Release\" -y
 
@@ -150,7 +150,7 @@ jobs:
         $process = Start-Process -FilePath ".\build\Release\snake.exe" -PassThru
         
         # 3. Use a static time-buffer instead of checking MainWindowHandle
-        Start-Sleep -s 8
+        Start-Sleep -Seconds 8
 
         # 4. Use a reliable GDI+ capture that doesn't rely on Windows.Forms.Screen bounds
         Add-Type -AssemblyName System.Drawing
@@ -162,8 +162,11 @@ jobs:
         $Bitmap   = New-Object System.Drawing.Bitmap $Width, $Height
         $Graphics = [System.Drawing.Graphics]::FromImage($Bitmap)
         
+        # Corrected: Removed invalid comma syntax after New-Object
+        $BoundsSize = New-Object System.Drawing.Size($Width, $Height)
+        
         # Attempt to copy frame buffer from coordinates
-        $Graphics.CopyFromScreen(0, 0, 0, 0, New-Object, System.Drawing.Size($Width, $Height))
+        $Graphics.CopyFromScreen(0, 0, 0, 0, $BoundsSize)
         
         # Save screenshot using your matrix context variables
         $Bitmap.Save("$PWD\screenshot--${{ matrix.os }}--${{ matrix.c_compiler }}--${{ matrix.cpp_compiler }}.png")

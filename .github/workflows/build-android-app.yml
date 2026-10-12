@@ -47,13 +47,11 @@ jobs:
           arch: x86_64
           profile: pixel_7_pro
           script: |
-            cd android
-
             # Wait for device to be fully booted
             adb wait-for-device
             
             # Install your SDL3 APK
-            adb install -r app/build/outputs/apk/debug/app-debug.apk
+            adb install -r android\app\build\outputs\apk\debug\app-debug.apk
             
             # Launch your SDL3 activity (replace with your package and activity name)
             adb shell am start -n "com.isaiahnields.snake/.MainActivity"

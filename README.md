@@ -1,2 +1,2 @@
 # Snake
-Cross-platform Snake game with neural network AI players
+Cross-platform Snake game with trainable AI players

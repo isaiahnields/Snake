@@ -113,6 +113,55 @@ jobs:
       # Build your program with the given configuration. Note that --config is needed because the default Windows generator is a multi-config generator (Visual Studio generator).
       run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }}
 
+      # --- UBUNTU / LINUX: Use Xvfb to run GUI and capture screenshot ---
+    - name: Run GUI & Capture Screenshot (Ubuntu)
+      if: runner.os == 'Linux'
+      run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb scrot imagemagick
+          Xvfb :99 -screen 0 1024x768x24 &
+          export DISPLAY=:99
+          # Run your program in the background
+          ./build/snake &
+          sleep 3
+          scrot screenshot-ubuntu.png
+
+      # --- MACOS: Run GUI and capture screenshot ---
+    - name: Run GUI & Capture Screenshot (macOS)
+      if: runner.os == 'macOS'
+      run: |
+          # Launch app in background (adjust path to your executable)
+          ./build/snake.app/Contents/MacOS/snake &
+          sleep 3
+          # Capture main screen using screencapture
+          screencapture -x screenshot-macos.png
+          
+      # --- WINDOWS: Run GUI and capture screenshot (using PowerShell/.NET or tool) ---
+    - name: Run GUI & Capture Screenshot (Windows)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+          Start-Process -FilePath ".\build\Release\snake.exe"
+          Start-Sleep -s 3
+          # PowerShell snippet to capture screen
+          Add-Type -AssemblyName System.Windows.Forms
+          Add-Type -AssemblyName System.Drawing
+          $Screen = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+          $Bitmap = New-Object System.Drawing.Bitmap $Screen.Width, $Screen.Height
+          $Graphics = [System.Drawing.Graphics]::FromImage($Bitmap)
+          $Graphics.CopyFromScreen($Screen.Location, [System.Drawing.Point]::Empty, $Screen.Size)
+          $Bitmap.Save("$PWD\screenshot-windows.png")
+          $Graphics.Dispose()
+          $Bitmap.Dispose()
+
+      # --- Upload Screenshots as Artifacts ---
+    - name: Upload Screenshots
+      uses: actions/upload-artifact@v4
+      with:
+        name: program-screenshots-${{ matrix.os }}
+        path: |
+          screenshot-*.png
+
     - name: Test
       working-directory: ${{ steps.strings.outputs.build-output-dir }}
       # Execute tests defined by the CMake configuration. Note that --build-config is needed because the default Windows generator is a multi-config generator (Visual Studio generator).

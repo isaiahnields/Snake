@@ -124,7 +124,7 @@ jobs:
           # Run your program in the background
           ./build/snake &
           sleep 10
-          scrot screenshot-${{ matrix.os }}-${{ matrix.c_compiler }}-${{ matrix.cpp_compiler }}.png
+          scrot screenshot--${{ matrix.os }}--${{ matrix.c_compiler }}--${{ matrix.cpp_compiler }}.png
 
       # --- MACOS: Run GUI and capture screenshot ---
     - name: Run GUI & Capture Screenshot (macOS)
@@ -134,7 +134,7 @@ jobs:
           ./build/Snake.app/Contents/MacOS/Snake &
           sleep 10
           # Capture main screen using screencapture
-          screencapture -x screenshot-${{ matrix.os }}-${{ matrix.c_compiler }}-${{ matrix.cpp_compiler }}.png
+          screencapture -x screenshot--${{ matrix.os }}--${{ matrix.c_compiler }}--${{ matrix.cpp_compiler }}.png
           
       # --- WINDOWS: Run GUI and capture screenshot (using PowerShell/.NET or tool) ---
     - name: Run GUI & Capture Screenshot (Windows)
@@ -145,24 +145,25 @@ jobs:
         Invoke-WebRequest -Uri "https://github.com" -OutFile "mesa.7z"
         # (Extract the opengl32.dll file using 7z or Expand-Archive and copy it to .\build\Release\)
 
-        # 1. Start your game in the background
+        # Start your process safely
         $process = Start-Process -FilePath ".\build\Release\snake.exe" -PassThru
         
-        # 2. Give it a few seconds to fully initialize
-        Start-Sleep -s 10
+        # Instead of sleep, loop until the Window Handle is generated and active
+        while ($process.MainWindowHandle -eq 0) { Start-Sleep -m 500 }
+        Start-Sleep -s 5 # Additional buffer time for initial frames to complete
         
-        # 3. Capture the screen via your original PowerShell script
+        # Capture screen via forms
         Add-Type -AssemblyName System.Windows.Forms
         Add-Type -AssemblyName System.Drawing
         $Screen = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
         $Bitmap = New-Object System.Drawing.Bitmap $Screen.Width, $Screen.Height
         $Graphics = [System.Drawing.Graphics]::FromImage($Bitmap)
         $Graphics.CopyFromScreen($Screen.Location, [System.Drawing.Point]::Empty, $Screen.Size)
-        $Bitmap.Save("$PWD\screenshot-${{ matrix.os }}-${{ matrix.c_compiler }}-${{ matrix.cpp_compiler }}.png")
+        $Bitmap.Save("$PWD\screenshot--${{ matrix.os }}--${{ matrix.c_compiler }}--${{ matrix.cpp_compiler }}.png")
+        
+        # Clean up
         $Graphics.Dispose()
         $Bitmap.Dispose()
-        
-        # 4. Stop the game so the pipeline can move on
         Stop-Process -Id $process.Id -Force
 
       # --- Upload Screenshots as Artifacts ---

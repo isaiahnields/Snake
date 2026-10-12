@@ -137,13 +137,16 @@ jobs:
           screencapture -x screenshot--${{ matrix.os }}--${{ matrix.c_compiler }}--${{ matrix.cpp_compiler }}.png
           
       # --- WINDOWS: Run GUI and capture screenshot (using PowerShell/.NET or tool) ---
+      # --- WINDOWS: Run GUI and capture screenshot (using PowerShell/.NET or tool) ---
     - name: Run GUI & Capture Screenshot (Windows)
       if: runner.os == 'Windows'
       shell: pwsh
       run: |
-        # 1. Download a genuine Mesa distribution release (adjust version/link as needed)
-        # TODO: Replace the placeholder below with a direct link to a valid mesa3d .7z file
-        Invoke-WebRequest -Uri "https://github.com" -OutFile "mesa.7z"
+        # 1. Download a genuine Mesa distribution release from an authorized source
+        $MesaUrl = "https://github.com/pal1000/mesa-dist-win/releases/download/26.2.4/mesa3d-26.2.4-release-msvc.7z"
+        Invoke-WebRequest -Uri $MesaUrl -OutFile "mesa.7z"
+        
+        # Extract just the opengl32.dll needed for software rendering
         7z e mesa.7z x64/opengl32.dll -o".\build\Release\" -y
 
         # 2. Asynchronously start your application
@@ -175,6 +178,7 @@ jobs:
         $Graphics.Dispose()
         $Bitmap.Dispose()
         Stop-Process -Id $process.Id -Force
+
 
 
       # --- Upload Screenshots as Artifacts ---

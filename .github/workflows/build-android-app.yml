@@ -73,7 +73,7 @@ jobs:
             sleep 5
             
             # Capture screenshot
-            /usr/local/lib/android/sdk/platform-tools/adb shell screencap -p > ../screenshot.png
+            /usr/local/lib/android/sdk/platform-tools/adb shell screencap -p > screenshot.png
 
       - name: Upload Screenshot Artifact
         uses: actions/upload-artifact@v4

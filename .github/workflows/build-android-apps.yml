@@ -7,6 +7,7 @@ on:
 
 jobs:
   build-android-apps:
+    name: Build Android app [API level = ${{ matrix.api-level }}, target = ${{ matrix.target }}]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false

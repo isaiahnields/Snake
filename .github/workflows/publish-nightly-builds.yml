@@ -1,0 +1,60 @@
+name: Publish nightly builds
+
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish-nightly-build:
+    name: Publish nightly (${{ matrix.os }}) build
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact: snake-nightly-ubuntu
+            executable: build/Release/snake
+          - os: windows-latest
+            artifact: snake-nightly-windows
+            executable: build/Release/snake.exe
+          - os: macos-latest
+            artifact: snake-nightly-macos
+            executable: build/Release/snake
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Install SDL
+        shell: bash
+        run: git clone https://github.com/libsdl-org/SDL.git vendored/SDL
+
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libx11-dev libxext-dev libxcursor-dev libxi-dev libxrandr-dev libxss-dev libxtst-dev
+
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DSDL_SHARED=OFF -DSDL_STATIC=ON
+
+      - name: Build
+        run: cmake --build build --config Release --parallel
+
+      - name: Run unit tests
+        run: ctest --test-dir build -C Release --output-on-failure --no-tests=error
+
+      - name: Package executable
+        run: cmake -E tar czf ${{ matrix.artifact }}.tar.gz --format=gnutar -- ${{ matrix.executable }}
+
+      - name: Upload nightly build
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.artifact }}.tar.gz
+          if-no-files-found: error
+          retention-days: 14

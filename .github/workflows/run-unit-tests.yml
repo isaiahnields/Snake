@@ -13,7 +13,11 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
         test: [snake_game, neural_network, dqn_agent, renderer]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
+
+      - name: Install SDL
+        shell: bash
+        run: git clone https://github.com/libsdl-org/SDL.git vendored/SDL
 
       - name: Install Linux dependencies
         if: runner.os == 'Linux'

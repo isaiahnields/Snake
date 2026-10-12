@@ -47,8 +47,22 @@ jobs:
           arch: x86_64
           profile: pixel_7_pro
           script: |
-            # Wait for device to be fully booted
-            adb wait-for-device
+            # 1. Force a clean environment check
+            echo "Starting ADB Server..."
+            /usr/local/lib/android/sdk/platform-tools/adb kill-server
+            /usr/local/lib/android/sdk/platform-tools/adb start-server
+            
+            # 2. Block until the ADB bridge says the emulator is online (prevents device offline errors)
+            echo "Waiting for ADB hardware bridge..."
+            /usr/local/lib/android/sdk/platform-tools/adb wait-for-device
+            
+            # 3. Safely loop until Android completes its boot cycle
+            echo "Waiting for Android OS to complete boot..."
+            until [ "$(/usr/local/lib/android/sdk/platform-tools/adb shell getprop sys.boot_completed | tr -d '\r')" = "1" ]; do
+              sleep 2
+            done
+            
+            echo "Emulator is completely ready!"
             
             # Install your SDL3 APK
             adb install -r android\app\build\outputs\apk\debug\app-debug.apk

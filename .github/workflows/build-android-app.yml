@@ -20,24 +20,24 @@ jobs:
         uses: actions/setup-java@v4
         with:
           java-version: '17'
-          distribution: 'temurin'
+          distribution: 'zulu'
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
         with:
           packages: 'cmdline-tools;latest platform-tools platforms;android-34 build-tools;34.0.0'
 
-      - name: Build Android APK (Gradle)
-        run: |
-          chmod +x ./gradlew
-          ./gradlew assembleDebug
-        working-directory: android
-
       - name: Enable KVM
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
+
+      - name: Build Android APK (Gradle)
+        run: |
+          chmod +x ./gradlew
+          ./gradlew assembleDebug
+        working-directory: android
 
       - name: Run Android Emulator and Execute Script
         uses: reactivecircus/android-emulator-runner@v2
@@ -47,6 +47,8 @@ jobs:
           arch: x86_64
           profile: pixel_7_pro
           script: |
+            cd android
+
             # Wait for device to be fully booted
             adb wait-for-device
             

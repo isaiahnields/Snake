@@ -139,11 +139,16 @@ jobs:
       # --- WINDOWS: Run GUI and capture screenshot (using PowerShell/.NET or tool) ---
     - name: Run GUI & Capture Screenshot (Windows)
       if: runner.os == 'Windows'
-      shell: pwsh
-      run: |
-          Start-Process -FilePath ".\build\Release\snake.exe"
+      uses: coactions/setup-xvfb@v1
+      with:
+        run: |
+          # 1. Start your game in the background
+          $process = Start-Process -FilePath ".\build\Release\snake.exe" -PassThru
+          
+          # 2. Give it a few seconds to fully initialize
           Start-Sleep -s 10
-          # PowerShell snippet to capture screen
+          
+          # 3. Capture the screen via your original PowerShell script
           Add-Type -AssemblyName System.Windows.Forms
           Add-Type -AssemblyName System.Drawing
           $Screen = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
@@ -153,6 +158,9 @@ jobs:
           $Bitmap.Save("$PWD\screenshot-${{ matrix.os }}-${{ matrix.c_compiler }}-${{ matrix.cpp_compiler }}.png")
           $Graphics.Dispose()
           $Bitmap.Dispose()
+          
+          # 4. Stop the game so the pipeline can move on
+          Stop-Process -Id $process.Id -Force
 
       # --- Upload Screenshots as Artifacts ---
     - name: Upload Screenshots

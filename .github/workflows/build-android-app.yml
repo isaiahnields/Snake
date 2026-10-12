@@ -58,7 +58,8 @@ jobs:
             
             # 3. Safely loop until Android completes its boot cycle
             echo "Waiting for Android OS to complete boot..."
-            until [ "$(/usr/local/lib/android/sdk/platform-tools/adb shell getprop sys.boot_completed | tr -d '\r')" = "1" ]; do
+            until [ "$(adb shell getprop sys.boot_completed | tr -d '\r')" = "1" ]; do
+              echo "Waiting for emulator to boot..."
               sleep 2
             done
             

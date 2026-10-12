@@ -65,7 +65,7 @@ jobs:
             adb shell screencap -p /sdcard/screenshot.png
             
             # Pull the screenshot out to the GitHub Actions workspace
-            adb pull /sdcard/screenshot.png ./screenshot.png
+            adb pull /sdcard/screenshot.png ../screenshot.png
 
       - name: Upload Screenshot Artifact
         uses: actions/upload-artifact@v4

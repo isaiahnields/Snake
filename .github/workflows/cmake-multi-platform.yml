@@ -132,24 +132,26 @@ jobs:
           throw "Executable not found: $exe"
         }
         
-        $process = Start-Process -FilePath $exe -PassThru
+        $readyFile = Join-Path $env:RUNNER_TEMP "snake-ui-ready.txt"
+        Remove-Item -LiteralPath $readyFile -ErrorAction SilentlyContinue
+        $process = Start-Process -FilePath $exe -ArgumentList "--ready-file=$readyFile" -PassThru
         $startupDeadline = [DateTime]::UtcNow.AddSeconds(60)
         do {
           $process.Refresh()
           if ($process.HasExited) {
             throw "Snake exited during startup with code $($process.ExitCode)"
           }
-          if ($process.MainWindowHandle -ne [IntPtr]::Zero) {
+          if (Test-Path -LiteralPath $readyFile) {
             break
           }
           Start-Sleep -Milliseconds 500
         } while ([DateTime]::UtcNow -lt $startupDeadline)
 
-        if ($process.MainWindowHandle -eq [IntPtr]::Zero) {
-          throw "Snake did not create a window within 60 seconds"
+        if (-not (Test-Path -LiteralPath $readyFile)) {
+          throw "Snake did not render its initial menu within 60 seconds"
         }
 
-        Start-Sleep -Seconds 10
+        Start-Sleep -Seconds 2
 
         Add-Type -AssemblyName System.Drawing
         Add-Type -AssemblyName System.Windows.Forms

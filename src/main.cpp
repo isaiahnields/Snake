@@ -6,11 +6,22 @@
 #include <SDL3/SDL_main.h>
 #include <cstdlib>
 #include <ctime>
+#include <fstream>
 #include <iostream>
+#include <string>
 #include <vector>
 
 int main(int argc, char* argv[]) {
     srand(static_cast<unsigned>(time(nullptr)));
+
+    std::string ready_file_path;
+    constexpr char ready_file_argument[] = "--ready-file=";
+    for (int index = 1; index < argc; ++index) {
+        const std::string argument = argv[index];
+        if (argument.rfind(ready_file_argument, 0) == 0) {
+            ready_file_path = argument.substr(sizeof(ready_file_argument) - 1);
+        }
+    }
 
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         std::cerr << "SDL_Init Error: " << SDL_GetError() << std::endl;
@@ -42,6 +53,7 @@ int main(int argc, char* argv[]) {
     const int MANUAL_DELAY = 100;
     const int TRAINING_DELAY = 0;
     const int AI_DELAY = 100;
+    bool ready_file_created = false;
 
     uint32_t last_move_time = SDL_GetTicks();
 
@@ -81,6 +93,16 @@ int main(int argc, char* argv[]) {
 
         if (mode == MENU) {
             draw_menu(renderer, menu_modes[menu_selection]);
+            if (!ready_file_created && !ready_file_path.empty()) {
+                std::ofstream ready_file(ready_file_path);
+                if (!ready_file) {
+                    std::cerr << "Unable to create readiness file: " << ready_file_path << std::endl;
+                    quit = true;
+                } else {
+                    ready_file << "ready\n";
+                    ready_file_created = true;
+                }
+            }
         } else if (mode == MANUAL) {
             uint32_t current_time = SDL_GetTicks();
             if (current_time - last_move_time >= MANUAL_DELAY) {

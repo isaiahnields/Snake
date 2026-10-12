@@ -144,7 +144,7 @@ jobs:
     - name: Take Desktop Screenshot
       uses: nwtgck/create-desktop-screenshot-action@v1
       with:
-        name: screenshot-${{ matrix.os }}-${{ matrix.c_compiler }}-${{ matrix.cpp_compiler }}.png
+        file-name: screenshot-${{ matrix.os }}-${{ matrix.c_compiler }}-${{ matrix.cpp_compiler }}.png
 
       # --- Upload Screenshots as Artifacts ---
     - name: Upload Screenshots

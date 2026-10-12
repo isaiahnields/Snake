@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   publish-nightly-build:
-    name: Publish nightly (${{ matrix.os }}) build
+    name: Publish nightly ${{ matrix.os }} build
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false

@@ -127,15 +127,40 @@ jobs:
       if: runner.os == 'Windows'
       shell: pwsh
       run: |
-        Start-Process -FilePath ".\build\Release\snake.exe"
-        Start-Sleep -Seconds 5  # Give the app window time to open and render
+        $exe = Join-Path "${{ github.workspace }}" "build\Release\snake.exe"
+        if (-not (Test-Path $exe)) {
+          throw "Executable not found: $exe"
+        }
+        
+        Start-Process -FilePath $exe -NoNewWindow
+        Start-Sleep -Seconds 5
+
+        Add-Type -AssemblyName System.Drawing
+        Add-Type -AssemblyName System.Windows.Forms
+
+        $bounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+        $bitmap = New-Object System.Drawing.Bitmap $bounds.Width, $bounds.Height
+        $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
+        $graphics.CopyFromScreen($bounds.Location, [System.Drawing.Point]::Empty, $bounds.Size)
+
+        $screenshotPath = Join-Path "${{ github.workspace }}" "screenshot--${{ matrix.os }}--${{ matrix.c_compiler }}--${{ matrix.cpp_compiler }}.png"
+        $bitmap.Save($screenshotPath, [System.Drawing.Imaging.ImageFormat]::Png)
+
+        $graphics.Dispose()
+        $bitmap.Dispose()
+
+        if (Test-Path $screenshotPath) {
+          Write-Host "Screenshot captured successfully: $screenshotPath"
+        } else {
+          throw "Screenshot capture failed"
+        }
 
       # --- Upload Screenshots as Artifacts ---
-    # - name: Upload Screenshots
-    #   uses: actions/upload-artifact@v7
-    #   with:
-    #     archive: false
-    #     path: screenshot-${{ matrix.os }}-${{ matrix.c_compiler }}-${{ matrix.cpp_compiler }}.png
+    - name: Upload Screenshots
+      uses: actions/upload-artifact@v7
+      with:
+        archive: false
+        path: screenshot--${{ matrix.os }}--${{ matrix.c_compiler }}--${{ matrix.cpp_compiler }}.png
 
     - name: Test
       working-directory: ${{ steps.strings.outputs.build-output-dir }}

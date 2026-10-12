@@ -64,19 +64,19 @@ jobs:
             echo "Emulator is completely ready!"
             
             # Install your SDL3 APK
-            adb install -r android\app\build\outputs\apk\debug\app-debug.apk
+            /usr/local/lib/android/sdk/platform-tools/adb install -r android\app\build\outputs\apk\debug\app-debug.apk
             
             # Launch your SDL3 activity (replace with your package and activity name)
-            adb shell am start -n "com.isaiahnields.snake/.MainActivity"
+            /usr/local/lib/android/sdk/platform-tools/adb shell am start -n "com.isaiahnields.snake/.MainActivity"
             
             # Wait a few seconds for the SDL3 surface/renderer to render frames
             sleep 5
             
             # Capture screenshot inside the emulator
-            adb shell screencap -p /sdcard/screenshot.png
+            /usr/local/lib/android/sdk/platform-tools/adb shell screencap -p /sdcard/screenshot.png
             
             # Pull the screenshot out to the GitHub Actions workspace
-            adb pull /sdcard/screenshot.png ../screenshot.png
+            /usr/local/lib/android/sdk/platform-tools/adb pull /sdcard/screenshot.png ../screenshot.png
 
       - name: Upload Screenshot Artifact
         uses: actions/upload-artifact@v4

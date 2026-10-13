@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   publish-nightly-build:
@@ -58,3 +58,23 @@ jobs:
           path: ${{ matrix.artifact }}.tar.gz
           if-no-files-found: error
           retention-days: 14
+
+  create-nightly-release:
+    name: Create nightly release
+    needs: publish-nightly-build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download nightly builds
+        uses: actions/download-artifact@v7
+        with:
+          pattern: snake-nightly-*
+          path: dist
+          merge-multiple: true
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: nightly-${{ github.run_id }}-${{ github.run_attempt }}
+          name: Nightly build ${{ github.run_number }}.${{ github.run_attempt }}
+          prerelease: true
+          files: dist/*.tar.gz

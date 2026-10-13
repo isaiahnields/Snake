@@ -47,8 +47,7 @@ android {
             def versionName = variant.versionName
             def buildType = variant.buildType.name
 
-            // Set the new name (e.g., MyApp-v1.0.0-release.apk)
-            outputFileName = "${appName}-v${versionName}-${buildType}.apk"
+            outputFileName = "${appName}-${buildType}.apk"
         }
     }
 }

@@ -3,8 +3,8 @@
 
 # Game settings for manual play. One item per player; always editable.
 #   owner_id (S, PK)  grid_width, grid_height, wall_collision, apple_spawn, ...
-resource "aws_dynamodb_table" "manual_play_settings" {
-  name                        = "${local.name_prefix}-manual-play-settings"
+resource "aws_dynamodb_table" "user_play_settings" {
+  name                        = "${local.name_prefix}-user-play-settings"
   billing_mode                = "PAY_PER_REQUEST"
   hash_key                    = "owner_id"
   deletion_protection_enabled = var.deletion_protection

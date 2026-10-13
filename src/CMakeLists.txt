@@ -3,7 +3,19 @@ set(SNAKE_CORE_SOURCES
     neural_network.cpp
     dqn_agent.cpp
     renderer.cpp
-    menu.cpp
+    session_state.cpp
+    view_manager.cpp
+    views/menu_view.cpp
+    views/main_menu_view.cpp
+    views/manual_game_view.cpp
+    views/ai_control_center_view.cpp
+    views/train_ai_view.cpp
+    views/test_ai_view.cpp
+    views/train_cloud_ai_view.cpp
+    views/hall_of_fame_view.cpp
+    views/settings_view.cpp
+    views/replay_vault_menu.cpp
+    views/save_and_exit_view.cpp
 )
 
 add_library(snake_core ${SNAKE_CORE_SOURCES})

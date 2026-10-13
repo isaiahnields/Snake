@@ -28,10 +28,3 @@ enum Action
     TURN_RIGHT = 1,
     TURN_LEFT = 2
 };
-enum GameMode
-{
-    MENU,
-    MANUAL,
-    TRAINING,
-    AI_PLAY
-};

@@ -11,7 +11,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        test: [snake_game, neural_network, dqn_agent, renderer]
+        test: [snake_game, neural_network, dqn_agent, renderer, view_manager]
     steps:
       - uses: actions/checkout@v7
 

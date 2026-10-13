@@ -11,10 +11,16 @@
     "files.autoSave": "afterDelay",
     "files.exclude": {
         "**/build": true,
-        "**/out": true
+        "**/out": true,
+        "**/android/app/.cxx": true,
+        "**/android/.gradle": true,
+        "**/android/.idea": true
     },
     "search.exclude": {
         "**/build": true,
-        "**/out": true
+        "**/out": true,
+        "**/android/app/.cxx": true,
+        "**/android/.gradle": true,
+        "**/android/.idea": true
     }
 }

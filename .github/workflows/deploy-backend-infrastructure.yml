@@ -14,6 +14,7 @@ on:
 
 permissions:
   contents: read
+  id-token: write
 
 env:
   TERRAFORM_VERSION: '1.16.5'

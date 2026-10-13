@@ -86,9 +86,9 @@ std::vector<MenuItem> AIControlCenterView::items() const
                                  ? "Render Mode: Visual (Slow to watch)"
                                  : "Render Mode: Headless (Fast, no game rendering)",
                              page, MenuAction::ToggleTrainingRenderMode),
-                menu_command("Start Training Session", page, MenuAction::StartTraining), center};
+                menu_unavailable("Start Training Session", page), center};
     case MenuPage::Test:
-        return {menu_command("Run Visual Game", page, MenuAction::RunVisualTest),
+        return {menu_unavailable("Run Visual Game", page),
                 menu_unavailable("Run Batch Benchmark (100 headless games)", page), center};
     case MenuPage::ManageProfiles:
         return {menu_unavailable("Delete Active AI Profile", page), center};

@@ -22,5 +22,6 @@
         "**/android/app/.cxx": true,
         "**/android/.gradle": true,
         "**/android/.idea": true
-    }
+    },
+    "editor.formatOnSave": true
 }

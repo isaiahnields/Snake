@@ -77,4 +77,4 @@ jobs:
           tag_name: nightly-${{ github.run_id }}-${{ github.run_attempt }}
           name: Nightly build ${{ github.run_number }}.${{ github.run_attempt }}
           prerelease: true
-          files: dist/*.tar.gz
+          files: *.tar.gz

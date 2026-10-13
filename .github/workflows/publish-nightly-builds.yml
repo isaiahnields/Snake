@@ -58,6 +58,7 @@ jobs:
           if-no-files-found: error
           retention-days: 14
           archive: false
+
   publish-nightly-release:
     name: Publish nightly release
     needs: create-nightly-builds

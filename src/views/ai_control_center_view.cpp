@@ -50,8 +50,7 @@ std::vector<std::string> AIControlCenterView::details() const
         return {"AI training is not implemented.",
                 "Episode count and render mode are session preferences only."};
     case MenuPage::Test:
-        return {"Visual AI testing is not implemented.",
-                "Batch benchmarks are not implemented."};
+        return {"Visual AI testing is not implemented.", "Batch benchmarks are not implemented."};
     default:
         return {"No active AI is available.",
                 "Named profiles, saving and deletion are not implemented."};

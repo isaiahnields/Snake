@@ -3,8 +3,8 @@
 
 # Game settings for manual play. One item per player; always editable.
 #   owner_id (S, PK)  grid_width, grid_height, wall_collision, apple_spawn, ...
-resource "aws_dynamodb_table" "user_play_settings" {
-  name                        = "${local.name_prefix}-user-play-settings"
+resource "aws_dynamodb_table" "user_settings" {
+  name                        = "${local.name_prefix}-user-settings"
   billing_mode                = "PAY_PER_REQUEST"
   hash_key                    = "owner_id"
   deletion_protection_enabled = var.deletion_protection
@@ -28,8 +28,8 @@ resource "aws_dynamodb_table" "user_play_settings" {
 #   game_settings (M), created_at, updated_at
 # Players only read this table. Items are written by the AI players API, which
 # sets the settings once at creation and afterwards only changes display_name.
-resource "aws_dynamodb_table" "ai_players" {
-  name                        = "${local.name_prefix}-ai-players"
+resource "aws_dynamodb_table" "ai_player" {
+  name                        = "${local.name_prefix}-ai-player"
   billing_mode                = "PAY_PER_REQUEST"
   hash_key                    = "owner_id"
   range_key                   = "ai_player_id"
@@ -57,8 +57,8 @@ resource "aws_dynamodb_table" "ai_players" {
 # Manually played games.
 #   owner_id (S, PK), game_id (S, SK; time-sortable such as a ULID), score (N),
 #   game_settings (M), started_at, ended_at, telemetry_s3_uri
-resource "aws_dynamodb_table" "user_games" {
-  name                        = "${local.name_prefix}-user-games"
+resource "aws_dynamodb_table" "user_game" {
+  name                        = "${local.name_prefix}-user-game"
   billing_mode                = "PAY_PER_REQUEST"
   hash_key                    = "owner_id"
   range_key                   = "game_id"
@@ -87,8 +87,8 @@ resource "aws_dynamodb_table" "user_games" {
 #   owner_id (S, PK), game_key (S, SK) = "<ai_player_id>#<train|test>#<game_id>",
 #   ai_player_id, phase (train|test), episode (N), score (N), telemetry_s3_uri
 # Query with begins_with(game_key, "<ai_player_id>#test#") to list one phase.
-resource "aws_dynamodb_table" "ai_games" {
-  name                        = "${local.name_prefix}-ai-games"
+resource "aws_dynamodb_table" "ai_game" {
+  name                        = "${local.name_prefix}-ai-game"
   billing_mode                = "PAY_PER_REQUEST"
   hash_key                    = "owner_id"
   range_key                   = "game_key"

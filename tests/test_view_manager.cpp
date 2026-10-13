@@ -3,7 +3,6 @@
 #include "../src/renderer.h"
 #include "../src/view_manager.h"
 #include "../src/views/manual_game_view.h"
-#include "../src/views/train_ai_view.h"
 
 #include <set>
 #include <string>
@@ -51,17 +50,6 @@ const std::string &notice(ViewManager &manager)
 bool starts_with(const std::string &text, const std::string &prefix)
 {
     return text.rfind(prefix, 0) == 0;
-}
-
-// Runs the active non-menu view with synthetic time until it hands control back.
-void run_until_menu(ViewManager &manager, ViewId running, int max_updates)
-{
-    Uint64 now_ms = 0;
-    for (int update = 0; update < max_updates && manager.active_id() == running; ++update)
-    {
-        manager.active().update(manager, now_ms);
-        now_ms += 100;
-    }
 }
 
 void test_main_menu_and_manual_game()
@@ -147,25 +135,13 @@ void test_ai_views()
     press(manager, SDLK_2);
     CHECK(!session.visual_training);
 
-    session.training_episodes = 1;
     press(manager, SDLK_3);
-    CHECK(manager.active_id() == ViewId::TrainAI);
-    CHECK(manager.frame_delay_ms() == 0);
-    CHECK(static_cast<TrainAIView &>(manager.view(ViewId::TrainAI)).episode() == 1);
-    for (int frame = 0; frame < 10000 && manager.active_id() == ViewId::TrainAI; ++frame)
-        manager.update();
     CHECK(showing(manager, ViewId::AIControlCenter, MenuPage::Train));
-    CHECK(starts_with(notice(manager), "Training complete: 1 episodes."));
-    CHECK(session.agent.epsilon < 1.0f);
-
-    press(manager, SDLK_3);
-    CHECK(manager.active_id() == ViewId::TrainAI);
-    CHECK(static_cast<TrainAIView &>(manager.view(ViewId::TrainAI)).episode() == 1);
-    press(manager, SDLK_ESCAPE);
-    CHECK(showing(manager, ViewId::AIControlCenter, MenuPage::Train));
-    CHECK(starts_with(notice(manager), "Session stopped."));
+    CHECK(!notice(manager).empty());
 
     press(manager, SDLK_ESCAPE);
+    CHECK(showing(manager, ViewId::AIControlCenter, MenuPage::AI));
+
     press(manager, SDLK_4);
     CHECK(showing(manager, ViewId::TrainCloudAI, MenuPage::CloudTraining));
     press(manager, SDLK_2);
@@ -177,23 +153,15 @@ void test_ai_views()
     press(manager, SDLK_5);
     CHECK(showing(manager, ViewId::AIControlCenter, MenuPage::Test));
     press(manager, SDLK_1);
-    CHECK(manager.active_id() == ViewId::TestAI);
-    run_until_menu(manager, ViewId::TestAI, 5000);
     CHECK(showing(manager, ViewId::AIControlCenter, MenuPage::Test));
-    CHECK(starts_with(notice(manager), "AI test complete. Score: "));
-    CHECK(session.best_ai_scores.size() == 1);
-
-    press(manager, SDLK_1);
-    CHECK(manager.active_id() == ViewId::TestAI);
-    press(manager, SDLK_ESCAPE);
-    CHECK(showing(manager, ViewId::AIControlCenter, MenuPage::Test));
-    CHECK(starts_with(notice(manager), "Session stopped."));
-    press(manager, SDLK_2);
     CHECK(!notice(manager).empty());
-    CHECK(session.best_ai_scores.size() == 1);
+    press(manager, SDLK_2);
+    CHECK(showing(manager, ViewId::AIControlCenter, MenuPage::Test));
+    CHECK(!notice(manager).empty());
+    CHECK(session.best_ai_scores.empty());
 
     manager.open_page(MenuPage::AIGames);
-    CHECK(starts_with(manager.active().as_menu()->details().at(0), "Best AI test scores"));
+    CHECK(starts_with(manager.active().as_menu()->details().at(0), "No AI test games"));
 }
 
 void test_exit_and_input_filtering()

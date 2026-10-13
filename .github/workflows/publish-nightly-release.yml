@@ -109,7 +109,8 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/') && github.repository == 'isaiahnields/snake'
         run: |
           set -e
-          mv app/build/outputs/apk/basic/release/app-basic-universal-release-unsigned-signed.apk snake-nightly-android.apk
+          \android\app\build\outputs\apk\release
+          mv android/app/build/outputs/apk/release/Snake-release.apk snake-nightly-android.apk
           sha256=`sha256sum snake-nightly-android.apk | awk '{ print $1 }'`
           echo "APK_UNIVERSAL_SHA256=$sha256" >> $GITHUB_ENV
 

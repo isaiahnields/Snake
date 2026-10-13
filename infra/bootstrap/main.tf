@@ -164,7 +164,7 @@ data "aws_iam_policy_document" "plan_trust" {
     condition {
       test     = "StringEquals"
       variable = "${local.oidc_host}:sub"
-      values = ["repo:isaiahnields@12752162/snake@1413030131:ref:refs/heads/main"]
+      values   = ["repo:isaiahnields@12752162/snake@1413030131:ref:refs/heads/main"]
     }
   }
 }

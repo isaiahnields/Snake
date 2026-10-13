@@ -8,5 +8,13 @@
     "gradle.nestedProjects": false,
     "cmake.buildBeforeRun": false,
     "cmake.ctest.neverDebugTestsWithLaunchConfiguration": false,
-    "files.autoSave": "afterDelay"
+    "files.autoSave": "afterDelay",
+    "files.exclude": {
+        "**/build": true,
+        "**/out": true
+    },
+    "search.exclude": {
+        "**/build": true,
+        "**/out": true
+    }
 }

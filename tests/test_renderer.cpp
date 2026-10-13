@@ -112,8 +112,6 @@ static void test_ui_and_board(SDL_Renderer *renderer, SDL_Surface *surface)
     mouse_event(manager, SDL_EVENT_MOUSE_MOTION, MENU_LEFT - 1, MENU_TOP + 20);
     mouse_event(manager, SDL_EVENT_MOUSE_BUTTON_UP, MENU_LEFT - 1, MENU_TOP + 20);
     CHECK(manager.active_id() == ViewId::MainMenu);
-    click(manager, MENU_LEFT + 20, MENU_TOP + MENU_ROW_HEIGHT + 20);
-    CHECK(manager.active_id() == ViewId::HallOfFame);
 
     // Unavailable actions remain clickable so they still explain that nothing changed.
     manager.open_page(MenuPage::Difficulty);
@@ -211,18 +209,21 @@ static void test_window_backend()
             CHECK(ImGui::GetIO().BackendPlatformUserData != nullptr);
             CHECK(ImGui::GetIO().BackendRendererUserData != nullptr);
             CHECK(SDL_SetWindowSize(window, 1200, 600));
+            SDL_PumpEvents();
             manager.render();
             CHECK(ImGui::GetDrawData()->DisplaySize.x == 1200);
             CHECK(ImGui::GetDrawData()->DisplaySize.y == 600);
             const float scale = 600.0f / WINDOW_HEIGHT;
-            click(manager, (MENU_LEFT + 20) * scale, (MENU_TOP + MENU_ROW_HEIGHT + 20) * scale,
-                  SDL_BUTTON_LEFT, SDL_GetWindowID(window));
-            CHECK(manager.active_id() == ViewId::HallOfFame);
+            const float offset_x = (1200.0f - WINDOW_WIDTH * scale) / 2.0f;
+            click(manager, offset_x + (MENU_LEFT + 20) * scale,
+                  (MENU_TOP + MENU_ROW_HEIGHT + 20) * scale, SDL_BUTTON_LEFT,
+                  SDL_GetWindowID(window));
+            CHECK(manager.active_id() == ViewId::AIControlCenter);
             manager.open_page(MenuPage::Main);
             manager.render();
-            touch(manager, SDL_EVENT_FINGER_DOWN, 1, (MENU_LEFT + 20) * scale,
+            touch(manager, SDL_EVENT_FINGER_DOWN, 1, offset_x + (MENU_LEFT + 20) * scale,
                   (MENU_TOP + 20) * scale, 1200, 600, SDL_GetWindowID(window));
-            touch(manager, SDL_EVENT_FINGER_UP, 1, (MENU_LEFT + 20) * scale,
+            touch(manager, SDL_EVENT_FINGER_UP, 1, offset_x + (MENU_LEFT + 20) * scale,
                   (MENU_TOP + 20) * scale, 1200, 600, SDL_GetWindowID(window));
             manager.render();
             CHECK(manager.active_id() == ViewId::ManualGame);

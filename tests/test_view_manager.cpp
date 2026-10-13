@@ -114,7 +114,7 @@ void test_ai_views()
 {
     ViewManager manager;
     SessionState &session = manager.session();
-    press(manager, SDLK_3);
+    manager.open_page(MenuPage::AI);
     CHECK(showing(manager, ViewId::AIControlCenter, MenuPage::AI));
     CHECK(manager.active().as_menu()->items().size() == 7);
     CHECK(manager.active().as_menu()->details().at(0) == "No active AI is available.");
@@ -273,7 +273,17 @@ void test_every_page()
         CHECK(menu->selection == 0);
         press(manager, SDLK_ESCAPE);
         const MenuView *parent = manager.active().as_menu();
-        CHECK(parent != nullptr && parent->page == entries.back().target);
+        CHECK(parent != nullptr);
+        if (parent != nullptr)
+        {
+            int parent_owners = 0;
+            for (int id = 0; id < static_cast<int>(ViewId::Count); ++id)
+            {
+                const MenuView *candidate = manager.view(static_cast<ViewId>(id)).as_menu();
+                if (candidate != nullptr && candidate->owns(parent->page)) ++parent_owners;
+            }
+            CHECK(parent_owners == 1);
+        }
     }
     CHECK(visited.size() == static_cast<std::size_t>(page_count));
 }

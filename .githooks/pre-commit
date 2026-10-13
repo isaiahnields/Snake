@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+set -eu
+
+repo_root="$(git rev-parse --show-toplevel)"
+branch="$(git -C "$repo_root" branch --show-current)"
+
+if [[ "$branch" != "main" ]]; then
+    exit 0
+fi
+
+if ! git -C "$repo_root" diff --quiet; then
+    printf 'Linting requires tracked working-tree files to match the staged index.\n' >&2
+    exit 1
+fi
+
+printf 'Running the full codebase lint before committing to main...\n'
+cd "$repo_root"
+bash scripts/lint-codebase.sh

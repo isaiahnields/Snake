@@ -76,3 +76,4 @@ jobs:
           name: Nightly builds v${{ github.run_number }}.${{ github.run_attempt }}
           prerelease: true
           files: ./*.tar.gz
+          make_latest: true

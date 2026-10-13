@@ -43,7 +43,6 @@ bool SDLCALL HandleAppEvents(void *userdata, SDL_Event *event)
         */
         return false;
     default:
-        /* No special processing, add it to the event queue */
         return true;
     }
 }

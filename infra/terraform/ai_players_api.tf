@@ -34,7 +34,7 @@ resource "aws_iam_role" "ai_players" {
 data "aws_iam_policy_document" "ai_players" {
   statement {
     actions   = ["dynamodb:PutItem", "dynamodb:UpdateItem"]
-    resources = [aws_dynamodb_table.ai_players.arn]
+    resources = [aws_dynamodb_table.ai_player.arn]
   }
 
   statement {

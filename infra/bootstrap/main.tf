@@ -164,10 +164,7 @@ data "aws_iam_policy_document" "plan_trust" {
     condition {
       test     = "StringEquals"
       variable = "${local.oidc_host}:sub"
-      values = [
-        "repo:${var.github_repository}:pull_request",
-        "repo:${var.github_repository}:ref:refs/heads/${var.github_default_branch}",
-      ]
+      values = ["repo:isaiahnields@12752162/snake@1413030131:ref:refs/head/main"]
     }
   }
 }
@@ -222,7 +219,7 @@ data "aws_iam_policy_document" "apply_trust" {
     condition {
       test     = "StringEquals"
       variable = "${local.oidc_host}:sub"
-      values   = ["repo:${var.github_repository}:environment:${var.github_apply_environment}"]
+      values   = ["repo:isaiahnields@12752162/snake@1413030131:ref:refs/head/main"]
     }
   }
 }

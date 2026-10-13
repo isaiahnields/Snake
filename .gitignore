@@ -33,6 +33,7 @@
 
 # build files
 /build/*
+/build-lint/
 /out/*
 /.vscode/*
 /.vs/*

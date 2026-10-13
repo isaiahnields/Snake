@@ -7,7 +7,8 @@
 
 static const std::vector<float> S = {1, 0, 0, 1, 0, 0, 0};
 
-static void test_init() {
+static void test_init()
+{
     DQNAgent a;
     CHECK(a.epsilon == 1.0f);
     CHECK(a.policy_net.learning_rate == a.learning_rate);
@@ -16,7 +17,8 @@ static void test_init() {
     CHECK(a.policy_net.forward(S).size() == 3);
 }
 
-static void test_get_action() {
+static void test_get_action()
+{
     DQNAgent a;
     auto q = a.policy_net.forward(S);
     int best = 0;
@@ -28,13 +30,15 @@ static void test_get_action() {
     CHECK(a.get_action(S, true) == static_cast<Action>(best));
 
     a.epsilon = 1.0f;
-    for (int i = 0; i < 50; ++i) {
+    for (int i = 0; i < 50; ++i)
+    {
         int act = a.get_action(S, true);
         CHECK(act >= 0 && act <= 2);
     }
 }
 
-static void test_replay_buffer() {
+static void test_replay_buffer()
+{
     DQNAgent a;
     for (size_t i = 0; i < a.REPLAY_CAPACITY + 10; ++i)
         a.store_transition(S, STRAIGHT, static_cast<float>(i), S, false);
@@ -42,9 +46,10 @@ static void test_replay_buffer() {
     CHECK(a.replay_buffer.front().reward == 10.0f);
 }
 
-static void test_train_and_sync() {
+static void test_train_and_sync()
+{
     DQNAgent a;
-    a.train();  // too few samples: no-op
+    a.train(); // too few samples: no-op
     CHECK(a.update_counter == 0);
 
     for (size_t i = 0; i < a.BATCH_SIZE; ++i)
@@ -55,23 +60,27 @@ static void test_train_and_sync() {
     CHECK(a.policy_net.weights != before);
     CHECK(a.policy_net.weights != a.target_net.weights);
 
-    for (int i = 1; i < a.TARGET_UPDATE_INTERVAL; ++i) a.train();
+    for (int i = 1; i < a.TARGET_UPDATE_INTERVAL; ++i)
+        a.train();
     CHECK(a.update_counter == a.TARGET_UPDATE_INTERVAL);
     CHECK(a.policy_net.weights == a.target_net.weights);
 }
 
-static void test_decay_epsilon() {
+static void test_decay_epsilon()
+{
     DQNAgent a;
     a.decay_epsilon();
     CHECK(a.epsilon < 1.0f);
     a.epsilon = a.epsilon_min;
     a.decay_epsilon();
     CHECK(a.epsilon == a.epsilon_min);
-    for (int i = 0; i < 10000; ++i) a.decay_epsilon();
+    for (int i = 0; i < 10000; ++i)
+        a.decay_epsilon();
     CHECK(a.epsilon > 0.0f);
 }
 
-int main() {
+int main()
+{
     test_init();
     test_get_action();
     test_replay_buffer();

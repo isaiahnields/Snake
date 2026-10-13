@@ -5,8 +5,9 @@
 #include <deque>
 #include <vector>
 
-class SnakeGame {
-public:
+class SnakeGame
+{
+  public:
     std::deque<Point> snake;
     Point food;
     Direction dir;

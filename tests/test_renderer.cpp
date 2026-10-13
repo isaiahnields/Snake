@@ -4,17 +4,19 @@
 
 #include <SDL3/SDL.h>
 
-static bool pixel_is(SDL_Surface* s, int x, int y, Uint8 r, Uint8 g, Uint8 b) {
+static bool pixel_is(SDL_Surface *s, int x, int y, Uint8 r, Uint8 g, Uint8 b)
+{
     Uint8 pr, pg, pb, pa;
     if (!SDL_ReadSurfacePixel(s, x, y, &pr, &pg, &pb, &pa)) return false;
     return pr == r && pg == g && pb == b;
 }
 
-int main() {
-    SDL_Surface* surface = SDL_CreateSurface(WINDOW_WIDTH, WINDOW_HEIGHT, SDL_PIXELFORMAT_RGBA32);
+int main()
+{
+    SDL_Surface *surface = SDL_CreateSurface(WINDOW_WIDTH, WINDOW_HEIGHT, SDL_PIXELFORMAT_RGBA32);
     CHECK(surface != nullptr);
     if (!surface) return 1;
-    SDL_Renderer* renderer = SDL_CreateSoftwareRenderer(surface);
+    SDL_Renderer *renderer = SDL_CreateSoftwareRenderer(surface);
     CHECK(renderer != nullptr);
     if (!renderer) return 1;
 

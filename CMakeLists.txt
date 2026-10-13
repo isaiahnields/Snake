@@ -22,6 +22,15 @@ else()
     FetchContent_MakeAvailable(SDL3)
 endif()
 
+option(SNAKE_ENABLE_CLANG_TIDY "Run clang-tidy while compiling project targets" OFF)
+if(SNAKE_ENABLE_CLANG_TIDY)
+    find_program(CLANG_TIDY_EXECUTABLE NAMES clang-tidy)
+    if(NOT CLANG_TIDY_EXECUTABLE)
+        message(FATAL_ERROR "SNAKE_ENABLE_CLANG_TIDY is ON, but clang-tidy was not found")
+    endif()
+    set(CMAKE_CXX_CLANG_TIDY "${CLANG_TIDY_EXECUTABLE}")
+endif()
+
 add_subdirectory(src)
 
 if(NOT ANDROID)

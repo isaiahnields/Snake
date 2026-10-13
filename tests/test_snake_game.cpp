@@ -3,7 +3,8 @@
 #include "../src/game_types.h"
 #include "../src/snake_game.h"
 
-static void test_reset() {
+static void test_reset()
+{
     SnakeGame g;
     g.score = 5;
     g.game_over = true;
@@ -17,7 +18,8 @@ static void test_reset() {
     CHECK(!(g.food == g.snake.front()));
 }
 
-static void test_place_food() {
+static void test_place_food()
+{
     SnakeGame g;
     g.snake.clear();
     for (int x = 0; x < GRID_WIDTH; ++x)
@@ -26,7 +28,8 @@ static void test_place_food() {
     g.place_food();
     CHECK(g.food == (Point{3, 4}));
 
-    for (int i = 0; i < 100; ++i) {
+    for (int i = 0; i < 100; ++i)
+    {
         SnakeGame h;
         h.place_food();
         CHECK(h.food.x >= 0 && h.food.x < GRID_WIDTH);
@@ -35,7 +38,8 @@ static void test_place_food() {
     }
 }
 
-static void test_is_collision() {
+static void test_is_collision()
+{
     SnakeGame g;
     CHECK(g.is_collision({-1, 0}));
     CHECK(g.is_collision({0, -1}));
@@ -51,7 +55,8 @@ static void test_is_collision() {
     CHECK(g.is_collision({3, 5}, true));
 }
 
-static void test_step_movement() {
+static void test_step_movement()
+{
     SnakeGame g;
     g.food = {0, 0};
     Point start = g.snake.front();
@@ -71,7 +76,8 @@ static void test_step_movement() {
     CHECK(g.dir == LEFT);
 }
 
-static void test_step_food_and_death() {
+static void test_step_food_and_death()
+{
     SnakeGame g;
     g.food = {g.snake.front().x + 1, g.snake.front().y};
     float r = g.step(STRAIGHT);
@@ -96,7 +102,8 @@ static void test_step_food_and_death() {
     CHECK(s.game_over);
 }
 
-static void test_state_vector() {
+static void test_state_vector()
+{
     SnakeGame g;
     g.snake.clear();
     g.snake.push_back({0, 0});
@@ -108,29 +115,30 @@ static void test_state_vector() {
     CHECK(s[0] == 0.0f);
     CHECK(s[1] == 0.0f);
     CHECK(s[2] == 1.0f);
-    CHECK(s[3] == 1.0f);  // food ahead
+    CHECK(s[3] == 1.0f); // food ahead
     CHECK(s[4] == 0.0f);
     CHECK(s[5] == 0.0f);
     CHECK(s[6] == 0.0f);
 
     g.dir = LEFT;
     s = g.get_state_vector();
-    CHECK(s[0] == 1.0f);  // wall ahead
-    CHECK(s[6] == 1.0f);  // food behind
+    CHECK(s[0] == 1.0f); // wall ahead
+    CHECK(s[6] == 1.0f); // food behind
 
     g.dir = UP;
     g.food = {3, 3};
     s = g.get_state_vector();
-    CHECK(s[4] == 1.0f);  // food to the right (x>0)
-    CHECK(s[6] == 1.0f);  // and behind (y>0)
+    CHECK(s[4] == 1.0f); // food to the right (x>0)
+    CHECK(s[6] == 1.0f); // and behind (y>0)
 
     g.dir = DOWN;
     s = g.get_state_vector();
     CHECK(s[3] == 1.0f);
-    CHECK(s[5] == 1.0f);  // dx>0 is left when facing down
+    CHECK(s[5] == 1.0f); // dx>0 is left when facing down
 }
 
-int main() {
+int main()
+{
     test_reset();
     test_place_food();
     test_is_collision();

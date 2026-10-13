@@ -4,7 +4,8 @@
 
 #include <cmath>
 
-static void test_relu() {
+static void test_relu()
+{
     CHECK(NeuralNetwork::relu(2.5f) == 2.5f);
     CHECK(NeuralNetwork::relu(-1.0f) == 0.0f);
     CHECK(NeuralNetwork::relu(0.0f) == 0.0f);
@@ -13,7 +14,8 @@ static void test_relu() {
     CHECK(NeuralNetwork::relu_derivative(0.0f) == 0.0f);
 }
 
-static void test_construction() {
+static void test_construction()
+{
     NeuralNetwork nn({3, 5, 2}, 0.01f);
     CHECK(nn.learning_rate == 0.01f);
     CHECK(nn.weights.size() == 2);
@@ -23,7 +25,8 @@ static void test_construction() {
     CHECK(nn.biases[0].size() == 5 && nn.biases[1].size() == 2);
 }
 
-static void test_forward_known_weights() {
+static void test_forward_known_weights()
+{
     NeuralNetwork nn({2, 2, 1}, 0.01f);
     nn.weights = {{{1.0f, -1.0f}, {0.5f, 0.5f}}, {{2.0f, 3.0f}}};
     nn.biases = {{0.0f, 0.0f}, {1.0f}};
@@ -33,18 +36,21 @@ static void test_forward_known_weights() {
     CHECK(std::fabs(out[0] - 5.5f) < 1e-5f);
 }
 
-static void test_train_reduces_error() {
+static void test_train_reduces_error()
+{
     NeuralNetwork nn({2, 8, 1}, 0.01f);
     std::vector<float> in = {0.5f, -0.3f};
     std::vector<float> target = {1.0f};
     float before = std::fabs(nn.forward(in)[0] - target[0]);
-    for (int i = 0; i < 500; ++i) nn.train(in, target);
+    for (int i = 0; i < 500; ++i)
+        nn.train(in, target);
     float after = std::fabs(nn.forward(in)[0] - target[0]);
     CHECK(after < before || after < 1e-3f);
     CHECK(after < 0.05f);
 }
 
-int main() {
+int main()
+{
     test_relu();
     test_construction();
     test_forward_known_weights();

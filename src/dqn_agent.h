@@ -6,7 +6,8 @@
 #include <deque>
 #include <vector>
 
-struct Transition {
+struct Transition
+{
     std::vector<float> state;
     Action action;
     float reward;
@@ -14,8 +15,9 @@ struct Transition {
     bool done;
 };
 
-class DQNAgent {
-public:
+class DQNAgent
+{
+  public:
     float learning_rate = 0.001f;
     NeuralNetwork policy_net;
     NeuralNetwork target_net;
@@ -31,9 +33,9 @@ public:
 
     DQNAgent();
 
-    Action get_action(const std::vector<float>& state, bool training = true);
-    void store_transition(const std::vector<float>& state, Action action, float reward,
-                          const std::vector<float>& next_state, bool done);
+    Action get_action(const std::vector<float> &state, bool training = true);
+    void store_transition(const std::vector<float> &state, Action action, float reward,
+                          const std::vector<float> &next_state, bool done);
     void sync_target_network();
     void train();
     void decay_epsilon();

@@ -35,8 +35,8 @@ int main(int argc, char *argv[])
 
     SDL_Window *window = nullptr;
     SDL_Renderer *renderer = nullptr;
-    if (!SDL_CreateWindowAndRenderer("Snake: AI Evolution", WINDOW_WIDTH, WINDOW_HEIGHT,
-                                     SDL_WINDOW_RESIZABLE, &window, &renderer))
+    if (!SDL_CreateWindowAndRenderer("Snake", WINDOW_WIDTH, WINDOW_HEIGHT, SDL_WINDOW_RESIZABLE,
+                                     &window, &renderer))
     {
         std::cerr << "Window Error: " << SDL_GetError() << std::endl;
         SDL_Quit();

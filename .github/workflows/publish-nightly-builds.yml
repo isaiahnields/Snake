@@ -58,3 +58,4 @@ jobs:
           path: ${{ matrix.artifact }}.tar.gz
           if-no-files-found: error
           retention-days: 14
+          archive: false

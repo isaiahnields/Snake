@@ -76,7 +76,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v6
 
       - name: Make gradlew executable
-        run: chmod +x gradlew
+        run: chmod +x ./gradlew
 
       - name: Lint
         run: ./gradlew spotlessCheck

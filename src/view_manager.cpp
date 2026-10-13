@@ -11,6 +11,9 @@
 #include "views/train_ai_view.h"
 #include "views/train_cloud_ai_view.h"
 
+#include <imgui.h>
+#include <imgui_impl_sdl3.h>
+#include <imgui_impl_sdlrenderer3.h>
 #include <iostream>
 
 namespace
@@ -36,7 +39,56 @@ ViewManager::ViewManager(SDL_Renderer *renderer) : renderer_(renderer)
     open(ViewId::MainMenu);
 }
 
-ViewManager::~ViewManager() = default;
+ViewManager::~ViewManager()
+{
+    if (ui_context_ == nullptr) return;
+    ImGui::SetCurrentContext(ui_context_);
+    if (renderer_initialized_) ImGui_ImplSDLRenderer3_Shutdown();
+    if (platform_initialized_) ImGui_ImplSDL3_Shutdown();
+    ImGui::DestroyContext(ui_context_);
+}
+
+bool ViewManager::initialize_ui()
+{
+    if (renderer_initialized_) return true;
+    if (renderer_ == nullptr || ui_context_ != nullptr)
+    {
+        std::cerr << "ImGui initialization requires a renderer and may not be retried."
+                  << std::endl;
+        return false;
+    }
+    IMGUI_CHECKVERSION();
+    ui_context_ = ImGui::CreateContext();
+    ImGui::SetCurrentContext(ui_context_);
+    ImGui::GetIO().IniFilename = nullptr;
+    ImGui::StyleColorsDark();
+    ImGui::GetStyle().WindowRounding = 0;
+    ImGui::GetStyle().WindowBorderSize = 0;
+    SDL_Window *window = SDL_GetRenderWindow(renderer_);
+    if (window != nullptr)
+    {
+        platform_initialized_ = ImGui_ImplSDL3_InitForSDLRenderer(window, renderer_);
+        if (!platform_initialized_)
+        {
+            std::cerr << "ImGui SDL platform initialization error: " << SDL_GetError() << std::endl;
+            return false;
+        }
+    }
+    renderer_initialized_ = ImGui_ImplSDLRenderer3_Init(renderer_);
+    if (!renderer_initialized_)
+    {
+        std::cerr << "ImGui SDL renderer initialization error: " << SDL_GetError() << std::endl;
+        return false;
+    }
+    if (!ImGui_ImplSDLRenderer3_CreateDeviceObjects())
+    {
+        std::cerr << "ImGui font texture creation error: " << SDL_GetError() << std::endl;
+        ImGui_ImplSDLRenderer3_Shutdown();
+        renderer_initialized_ = false;
+        return false;
+    }
+    return true;
+}
 
 void ViewManager::open(ViewId id)
 {
@@ -59,6 +111,7 @@ void ViewManager::open_page(MenuPage page, const std::string &notice)
 
 void ViewManager::handle_event(const SDL_Event &input)
 {
+    if (renderer_initialized_) process_ui_event(input);
     if (input.type == SDL_EVENT_QUIT)
     {
         open_page(MenuPage::Exit);
@@ -66,23 +119,89 @@ void ViewManager::handle_event(const SDL_Event &input)
     }
     if (input.type == SDL_EVENT_KEY_DOWN && input.key.repeat) return;
 
+    active().handle_event(*this, input);
+}
+
+void ViewManager::process_ui_event(const SDL_Event &input)
+{
+    ImGui::SetCurrentContext(ui_context_);
     SDL_Event event = input;
-    if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN || event.type == SDL_EVENT_FINGER_DOWN)
+    if ((event.type == SDL_EVENT_MOUSE_MOTION && event.motion.which == SDL_TOUCH_MOUSEID) ||
+        ((event.type == SDL_EVENT_MOUSE_BUTTON_DOWN || event.type == SDL_EVENT_MOUSE_BUTTON_UP) &&
+         event.button.which == SDL_TOUCH_MOUSEID))
+        return;
+    if (event.type == SDL_EVENT_FINGER_DOWN || event.type == SDL_EVENT_FINGER_UP ||
+        event.type == SDL_EVENT_FINGER_MOTION || event.type == SDL_EVENT_FINGER_CANCELED)
     {
-        // Ignore secondary buttons and the synthetic events SDL generates between mouse and
-        // touch, so each physical press is delivered exactly once.
-        if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN &&
-            (event.button.button != SDL_BUTTON_LEFT || event.button.which == SDL_TOUCH_MOUSEID))
-            return;
-        if (event.type == SDL_EVENT_FINGER_DOWN && event.tfinger.touchID == SDL_MOUSE_TOUCHID)
-            return;
-        if (renderer_ != nullptr && !SDL_ConvertEventToRenderCoordinates(renderer_, &event))
+        const auto finger = event.tfinger;
+        if (finger.touchID == SDL_MOUSE_TOUCHID) return;
+        if (event.type == SDL_EVENT_FINGER_DOWN && !touch_active_)
         {
-            std::cerr << "Input conversion error: " << SDL_GetError() << std::endl;
+            touch_active_ = true;
+            touch_finger_ = finger.fingerID;
+        }
+        if (!touch_active_ || touch_finger_ != finger.fingerID) return;
+        const bool motion = event.type == SDL_EVENT_FINGER_MOTION;
+        const bool down = event.type == SDL_EVENT_FINGER_DOWN;
+        const bool canceled = event.type == SDL_EVENT_FINGER_CANCELED;
+        int width = 0, height = 0;
+        SDL_Window *window = SDL_GetRenderWindow(renderer_);
+        const bool size_ok = window != nullptr
+                                 ? SDL_GetWindowSize(window, &width, &height)
+                                 : SDL_GetRenderOutputSize(renderer_, &width, &height);
+        if (!size_ok)
+        {
+            std::cerr << "Touch coordinate error: " << SDL_GetError() << std::endl;
             return;
         }
+        event = {};
+        if (motion)
+        {
+            event.type = SDL_EVENT_MOUSE_MOTION;
+            event.motion.windowID = finger.windowID;
+            event.motion.which = SDL_TOUCH_MOUSEID;
+            event.motion.x = finger.x * width;
+            event.motion.y = finger.y * height;
+        }
+        else
+        {
+            event.type = down ? SDL_EVENT_MOUSE_BUTTON_DOWN : SDL_EVENT_MOUSE_BUTTON_UP;
+            event.button.windowID = finger.windowID;
+            event.button.which = SDL_TOUCH_MOUSEID;
+            event.button.button = SDL_BUTTON_LEFT;
+            event.button.x = canceled ? -1.0f : finger.x * width;
+            event.button.y = canceled ? -1.0f : finger.y * height;
+            if (!down) touch_active_ = false;
+        }
     }
-    active().handle_event(*this, event);
+    if (platform_initialized_)
+    {
+        // Button events also carry a position, even when no preceding motion was delivered.
+        if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN || event.type == SDL_EVENT_MOUSE_BUTTON_UP)
+        {
+            SDL_Event motion{};
+            motion.type = SDL_EVENT_MOUSE_MOTION;
+            motion.motion.windowID = event.button.windowID;
+            motion.motion.which = event.button.which;
+            motion.motion.x = event.button.x;
+            motion.motion.y = event.button.y;
+            ImGui_ImplSDL3_ProcessEvent(&motion);
+        }
+        ImGui_ImplSDL3_ProcessEvent(&event);
+        return;
+    }
+    ImGuiIO &io = ImGui::GetIO();
+    if (event.type == SDL_EVENT_MOUSE_MOTION)
+        io.AddMousePosEvent(event.motion.x, event.motion.y);
+    else if ((event.type == SDL_EVENT_MOUSE_BUTTON_DOWN ||
+              event.type == SDL_EVENT_MOUSE_BUTTON_UP) &&
+             event.button.button == SDL_BUTTON_LEFT)
+    {
+        io.AddMousePosEvent(event.button.x, event.button.y);
+        io.AddMouseButtonEvent(0, event.type == SDL_EVENT_MOUSE_BUTTON_DOWN);
+    }
+    else if (event.type == SDL_EVENT_MOUSE_WHEEL)
+        io.AddMouseWheelEvent(-event.wheel.x, event.wheel.y);
 }
 
 void ViewManager::update()
@@ -90,14 +209,64 @@ void ViewManager::update()
     active().update(*this, SDL_GetTicks());
 }
 
-void ViewManager::render()
+bool ViewManager::render()
 {
-    if (renderer_ == nullptr) return;
+    if (renderer_ == nullptr) return true;
+    if (!renderer_initialized_)
+    {
+        std::cerr << "ImGui must be initialized before rendering." << std::endl;
+        request_quit();
+        return false;
+    }
+    ImGui::SetCurrentContext(ui_context_);
+    ImGui_ImplSDLRenderer3_NewFrame();
+    if (platform_initialized_)
+        ImGui_ImplSDL3_NewFrame();
+    else
+    {
+        int width = 0, height = 0;
+        if (!SDL_GetRenderOutputSize(renderer_, &width, &height))
+        {
+            std::cerr << "Render size error: " << SDL_GetError() << std::endl;
+            request_quit();
+            return false;
+        }
+        ImGui::GetIO().DisplaySize = ImVec2(static_cast<float>(width), static_cast<float>(height));
+        ImGui::GetIO().DeltaTime = DEFAULT_FRAME_DELAY_MS / 1000.0f;
+    }
+    if (ImGui::GetIO().DisplaySize.x <= 0 || ImGui::GetIO().DisplaySize.y <= 0) return true;
+    ImGui::NewFrame();
     SDL_SetRenderDrawColor(renderer_, 30, 30, 30, 255);
     SDL_RenderClear(renderer_);
+    MenuView *menu = active().as_menu();
     active().render(renderer_);
+    ImGui::Render();
+    int width = 0, height = 0;
+    SDL_RendererLogicalPresentation presentation;
+    if (!SDL_GetRenderLogicalPresentation(renderer_, &width, &height, &presentation))
+    {
+        std::cerr << "Render presentation query error: " << SDL_GetError() << std::endl;
+        request_quit();
+        return false;
+    }
+    // UI uses window coordinates; only the game board uses SDL's letterboxed logical size.
+    if (!SDL_SetRenderLogicalPresentation(renderer_, 0, 0, SDL_LOGICAL_PRESENTATION_DISABLED))
+    {
+        std::cerr << "UI render presentation error: " << SDL_GetError() << std::endl;
+        request_quit();
+        return false;
+    }
     SDL_SetRenderScale(renderer_, 1.0f, 1.0f);
+    ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), renderer_);
     SDL_RenderPresent(renderer_);
+    if (!SDL_SetRenderLogicalPresentation(renderer_, width, height, presentation))
+    {
+        std::cerr << "Game render presentation error: " << SDL_GetError() << std::endl;
+        request_quit();
+        return false;
+    }
+    if (menu != nullptr) menu->apply_ui_action(*this);
+    return true;
 }
 
 int ViewManager::frame_delay_ms() const

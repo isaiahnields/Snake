@@ -4,11 +4,11 @@ project(snake)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/$<CONFIGURATION>")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/$<CONFIGURATION>")
 
+include(FetchContent)
+
 if(ANDROID)
     find_package(SDL3 REQUIRED CONFIG)
 else()
-    include(FetchContent)
-
     set(SDL_SHARED OFF CACHE BOOL "Build SDL shared library" FORCE)
     set(SDL_STATIC ON CACHE BOOL "Build SDL static library" FORCE)
 
@@ -21,6 +21,26 @@ else()
 
     FetchContent_MakeAvailable(SDL3)
 endif()
+
+FetchContent_Declare(
+    imgui
+    GIT_REPOSITORY https://github.com/ocornut/imgui.git
+    GIT_TAG        v1.91.9b
+    GIT_SHALLOW    TRUE
+)
+FetchContent_MakeAvailable(imgui)
+
+add_library(snake_imgui STATIC
+    ${imgui_SOURCE_DIR}/imgui.cpp
+    ${imgui_SOURCE_DIR}/imgui_draw.cpp
+    ${imgui_SOURCE_DIR}/imgui_tables.cpp
+    ${imgui_SOURCE_DIR}/imgui_widgets.cpp
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_sdl3.cpp
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_sdlrenderer3.cpp
+)
+target_include_directories(snake_imgui PUBLIC ${imgui_SOURCE_DIR} ${imgui_SOURCE_DIR}/backends)
+target_link_libraries(snake_imgui PUBLIC SDL3::SDL3)
+set_target_properties(snake_imgui PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 option(SNAKE_ENABLE_CLANG_TIDY "Run clang-tidy while compiling project targets" OFF)
 if(SNAKE_ENABLE_CLANG_TIDY)

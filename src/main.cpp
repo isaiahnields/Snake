@@ -40,8 +40,14 @@ int main(int argc, char *argv[])
         return 1;
     }
 
+    int exit_code = 0;
     {
         ViewManager views(renderer);
+        if (!views.initialize_ui())
+        {
+            views.request_quit();
+            exit_code = 1;
+        }
 
         while (!views.quit_requested())
         {
@@ -52,7 +58,11 @@ int main(int argc, char *argv[])
             }
 
             views.update();
-            views.render();
+            if (!views.render())
+            {
+                exit_code = 1;
+                break;
+            }
 
             if (!ReadyFile::instance().upsert())
             {
@@ -67,5 +77,5 @@ int main(int argc, char *argv[])
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();
-    return 0;
+    return exit_code;
 }

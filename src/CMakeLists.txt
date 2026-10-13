@@ -20,7 +20,7 @@ set(SNAKE_CORE_SOURCES
 )
 
 add_library(snake_core ${SNAKE_CORE_SOURCES})
-target_link_libraries(snake_core PUBLIC SDL3::SDL3)
+target_link_libraries(snake_core PUBLIC SDL3::SDL3 snake_imgui)
 
 if(ANDROID)
     add_library(main SHARED main.cpp app_events.cpp)

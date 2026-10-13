@@ -185,8 +185,9 @@ void test_exit_and_input_filtering()
     CHECK(showing(manager, ViewId::MainMenu, MenuPage::Main));
     click(manager, MENU_LEFT - 1, MENU_TOP + 2);
     CHECK(showing(manager, ViewId::MainMenu, MenuPage::Main));
+    // Pointer activation is handled by ImGui and covered by the renderer tests.
     click(manager, MENU_LEFT + 2, MENU_TOP + MENU_ROW_HEIGHT + 2);
-    CHECK(showing(manager, ViewId::HallOfFame, MenuPage::HallOfFame));
+    CHECK(showing(manager, ViewId::MainMenu, MenuPage::Main));
 
     SDL_Event close{};
     close.type = SDL_EVENT_QUIT;

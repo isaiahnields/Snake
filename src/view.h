@@ -22,7 +22,7 @@ enum class ViewId
 
 constexpr int DEFAULT_FRAME_DELAY_MS = 16;
 
-// A screen of the application. Views issue SDL render instructions in render(); the
+// A screen of the application. Views issue SDL board and ImGui UI instructions in render(); the
 // ViewManager owns the frame (clearing and presenting) and routes input to the active view.
 class View
 {

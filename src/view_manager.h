@@ -9,24 +9,26 @@
 #include <memory>
 #include <string>
 
+struct ImGuiContext;
+
 // Owns every View, tracks which one is active, routes SDL events to it and renders it.
 class ViewManager
 {
   public:
-    // renderer may be null (e.g. in tests); render() is then a no-op and pointer
-    // coordinates are passed to views unconverted.
+    // renderer may be null for non-rendering tests. Call initialize_ui() before rendering.
     explicit ViewManager(SDL_Renderer *renderer = nullptr);
     ~ViewManager();
     ViewManager(const ViewManager &) = delete;
     ViewManager &operator=(const ViewManager &) = delete;
 
+    bool initialize_ui();
     void open(ViewId id);
     // Activates the menu view that owns page and shows that page with an optional notice.
     void open_page(MenuPage page, const std::string &notice = {});
 
     void handle_event(const SDL_Event &event);
     void update();
-    void render();
+    bool render();
 
     int frame_delay_ms() const;
     void request_quit();
@@ -43,4 +45,11 @@ class ViewManager
     std::array<std::unique_ptr<View>, static_cast<std::size_t>(ViewId::Count)> views_;
     ViewId active_ = ViewId::MainMenu;
     bool quit_ = false;
+    ImGuiContext *ui_context_ = nullptr;
+    bool platform_initialized_ = false;
+    bool renderer_initialized_ = false;
+    bool touch_active_ = false;
+    SDL_FingerID touch_finger_ = 0;
+
+    void process_ui_event(const SDL_Event &event);
 };

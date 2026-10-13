@@ -83,6 +83,7 @@ class MenuView : public View
     void back(ViewManager &manager);
     void activate(ViewManager &manager);
     void shortcut(int number, ViewManager &manager);
+    void apply_ui_action(ViewManager &manager);
 
     void handle_event(ViewManager &manager, const SDL_Event &event) override;
     void render(SDL_Renderer *renderer) const override;
@@ -92,5 +93,6 @@ class MenuView : public View
     virtual void perform(MenuAction action, ViewManager &manager);
 
   private:
+    mutable int clicked_item_ = -1;
     void navigate(MenuPage target, ViewManager &manager);
 };

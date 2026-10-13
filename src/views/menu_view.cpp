@@ -3,6 +3,8 @@
 #include "../renderer.h"
 #include "../view_manager.h"
 
+#include <utility>
+
 MenuItem menu_link(const std::string &label, MenuPage target)
 {
     return {label, target};
@@ -79,18 +81,6 @@ void MenuView::shortcut(int number, ViewManager &manager)
 
 void MenuView::handle_event(ViewManager &manager, const SDL_Event &event)
 {
-    if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN || event.type == SDL_EVENT_FINGER_DOWN)
-    {
-        const bool mouse = event.type == SDL_EVENT_MOUSE_BUTTON_DOWN;
-        const int selected = menu_item_at(mouse ? event.button.x : event.tfinger.x,
-                                          mouse ? event.button.y : event.tfinger.y, *this);
-        if (selected >= 0)
-        {
-            selection = selected;
-            activate(manager);
-        }
-        return;
-    }
     if (event.type != SDL_EVENT_KEY_DOWN) return;
 
     const SDL_Keycode key = event.key.key;
@@ -108,7 +98,15 @@ void MenuView::handle_event(ViewManager &manager, const SDL_Event &event)
 
 void MenuView::render(SDL_Renderer *renderer) const
 {
-    draw_menu(renderer, *this);
+    clicked_item_ = draw_menu(renderer, *this);
+}
+
+void MenuView::apply_ui_action(ViewManager &manager)
+{
+    const int clicked = std::exchange(clicked_item_, -1);
+    if (clicked < 0) return;
+    selection = clicked;
+    activate(manager);
 }
 
 MenuView *MenuView::as_menu()

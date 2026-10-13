@@ -1,85 +1,85 @@
 #include "renderer.h"
 
-#include <cstring>
+#include <imgui.h>
 
 namespace
 {
-constexpr float MENU_TEXT_SCALE = 1.25f;
-
-void draw_centered_menu_label(SDL_Renderer *renderer, const char *text, const SDL_FRect &bounds)
+float ui_scale()
 {
-    const float text_width = static_cast<float>(std::strlen(text)) *
-                             SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE * MENU_TEXT_SCALE;
-    const float text_height = SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE * MENU_TEXT_SCALE;
-    const float x = bounds.x + (bounds.w - text_width) / 2.0f;
-    const float y = bounds.y + (bounds.h - text_height) / 2.0f;
-    SDL_RenderDebugText(renderer, x / MENU_TEXT_SCALE, y / MENU_TEXT_SCALE, text);
+    const ImVec2 size = ImGui::GetIO().DisplaySize;
+    return size.x < size.y ? size.x / WINDOW_WIDTH : size.y / WINDOW_HEIGHT;
 }
 
-// Draws the SNAKE banner and subtitle; leaves the render scale at MENU_TEXT_SCALE.
-void draw_header(SDL_Renderer *renderer, const std::string &subtitle)
+void begin_screen(const std::string &subtitle)
 {
-    const SDL_FRect title_rect = {MENU_LEFT, 40.0f, MENU_ROW_WIDTH, 60.0f};
-    SDL_SetRenderDrawColor(renderer, 100, 200, 255, 255);
-    SDL_RenderFillRect(renderer, &title_rect);
-
-    SDL_SetRenderScale(renderer, MENU_TEXT_SCALE, MENU_TEXT_SCALE);
-    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-    draw_centered_menu_label(renderer, "SNAKE", title_rect);
-    const SDL_FRect subtitle_rect = {MENU_LEFT, 110.0f, MENU_ROW_WIDTH, 40.0f};
-    draw_centered_menu_label(renderer, subtitle.c_str(), subtitle_rect);
+    const float scale = ui_scale();
+    ImGui::SetNextWindowPos(ImVec2(0, 0));
+    ImGui::SetNextWindowSize(ImGui::GetIO().DisplaySize);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(MENU_LEFT * scale, 40 * scale));
+    ImGui::Begin("Snake UI", nullptr,
+                 ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove |
+                     ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBringToFrontOnFocus);
+    ImGui::PopStyleVar();
+    ImGui::SetWindowFontScale(1.25f * scale);
+    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(100 / 255.0f, 200 / 255.0f, 1, 1));
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1, 1, 1, 1));
+    const ImVec2 banner_size(ImGui::GetContentRegionAvail().x, 60 * scale);
+    ImGui::BeginChild("Banner", banner_size, ImGuiChildFlags_None,
+                      ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+    const ImVec2 text_size = ImGui::CalcTextSize("SNAKE");
+    ImGui::SetCursorPos(
+        ImVec2((banner_size.x - text_size.x) / 2, (banner_size.y - text_size.y) / 2));
+    ImGui::TextUnformatted("SNAKE");
+    ImGui::EndChild();
+    ImGui::PopStyleColor(2);
+    ImGui::Spacing();
+    ImGui::TextWrapped("%s", subtitle.c_str());
+    ImGui::Spacing();
 }
 } // namespace
 
-int menu_item_at(float x, float y, const MenuView &menu)
+int draw_menu(SDL_Renderer *renderer, const MenuView &menu)
 {
-    if (x < MENU_LEFT || x >= MENU_LEFT + MENU_ROW_WIDTH || y < MENU_TOP) return -1;
-    const int row = static_cast<int>((y - MENU_TOP) / MENU_ROW_HEIGHT);
-    if (row >= static_cast<int>(menu.items().size()) ||
-        y - MENU_TOP - row * MENU_ROW_HEIGHT >= MENU_ROW_HEIGHT - 6)
-        return -1;
-    return row;
-}
-
-void draw_menu(SDL_Renderer *renderer, const MenuView &menu)
-{
+    (void)renderer;
+    begin_screen(menu.title());
+    ImGui::PushID(static_cast<int>(menu.page));
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(8 * ui_scale(), 3 * ui_scale()));
+    const auto details = menu.details();
+    for (const auto &line : details)
+        ImGui::TextWrapped("%s", line.c_str());
+    const float scale = ui_scale();
+    if (ImGui::GetCursorPosY() < MENU_TOP * scale) ImGui::SetCursorPosY(MENU_TOP * scale);
+    int clicked = -1;
     const auto entries = menu.items();
     for (size_t index = 0; index < entries.size(); ++index)
     {
-        const SDL_FRect bounds = {MENU_LEFT, MENU_TOP + index * MENU_ROW_HEIGHT, MENU_ROW_WIDTH,
-                                  MENU_ROW_HEIGHT - 6};
+        ImGui::PushID(static_cast<int>(index));
         const bool selected = static_cast<int>(index) == menu.selection;
-        SDL_SetRenderDrawColor(renderer, selected ? 50 : 45, selected ? 120 : 45,
-                               selected ? 85 : 45, 255);
-        SDL_RenderFillRect(renderer, &bounds);
-    }
-    draw_header(renderer, menu.title());
-    const auto details = menu.details();
-    for (size_t index = 0; index < details.size(); ++index)
-    {
-        SDL_RenderDebugText(renderer, MENU_LEFT / MENU_TEXT_SCALE,
-                            (170.0f + index * 24.0f) / MENU_TEXT_SCALE, details[index].c_str());
-    }
-    for (size_t index = 0; index < entries.size(); ++index)
-    {
-        SDL_SetRenderDrawColor(renderer, entries[index].available ? 255 : 170,
-                               entries[index].available ? 255 : 170,
-                               entries[index].available ? 255 : 170, 255);
+        ImGui::PushStyleColor(ImGuiCol_Button,
+                              selected ? ImVec4(50 / 255.0f, 120 / 255.0f, 85 / 255.0f, 1)
+                                       : ImVec4(45 / 255.0f, 45 / 255.0f, 45 / 255.0f, 1));
+        ImGui::PushStyleColor(ImGuiCol_Text, entries[index].available
+                                                 ? ImVec4(1, 1, 1, 1)
+                                                 : ImVec4(.67f, .67f, .67f, 1));
         const std::string text =
             std::to_string(menu.shortcut_number(index)) + ". " + entries[index].label;
-        SDL_RenderDebugText(renderer, (MENU_LEFT + 12) / MENU_TEXT_SCALE,
-                            (MENU_TOP + index * MENU_ROW_HEIGHT + 16) / MENU_TEXT_SCALE,
-                            text.c_str());
+        if (ImGui::Button(text.c_str(),
+                          ImVec2(ImGui::GetContentRegionAvail().x, (MENU_ROW_HEIGHT - 6) * scale)))
+            clicked = static_cast<int>(index);
+        ImGui::PopStyleColor(2);
+        ImGui::PopID();
+        ImGui::Dummy(ImVec2(0, 2 * scale));
     }
-    SDL_SetRenderDrawColor(renderer, 255, 210, 100, 255);
-    SDL_RenderDebugText(renderer, MENU_LEFT / MENU_TEXT_SCALE, 770 / MENU_TEXT_SCALE,
-                        menu.notice.c_str());
-    SDL_SetRenderDrawColor(renderer, 200, 200, 200, 255);
-    SDL_RenderDebugText(renderer, MENU_LEFT / MENU_TEXT_SCALE, 820 / MENU_TEXT_SCALE,
-                        "Up/Down: Select   Enter: Open   Number: Open   Esc: Back");
-    SDL_RenderDebugText(renderer, MENU_LEFT / MENU_TEXT_SCALE, 848 / MENU_TEXT_SCALE,
-                        "Click or tap an option to open it.");
-    SDL_SetRenderScale(renderer, 1.0f, 1.0f);
+    ImGui::Spacing();
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1, 210 / 255.0f, 100 / 255.0f, 1));
+    ImGui::TextWrapped("%s", menu.notice.c_str());
+    ImGui::PopStyleColor();
+    ImGui::TextWrapped("Up/Down: Select   Enter: Open   Number: Open   Esc: Back");
+    ImGui::TextWrapped("Click or tap an option to open it.");
+    ImGui::PopStyleVar();
+    ImGui::PopID();
+    ImGui::End();
+    return clicked;
 }
 
 void draw_game(SDL_Renderer *renderer, const SnakeGame &game)
@@ -109,21 +109,27 @@ void draw_game(SDL_Renderer *renderer, const SnakeGame &game)
 
 void draw_status(SDL_Renderer *renderer, const std::string &text)
 {
-    SDL_SetRenderDrawColor(renderer, 255, 210, 100, 255);
-    SDL_RenderDebugText(renderer, 6.0f, 6.0f, text.c_str());
+    (void)renderer;
+    ImGui::SetNextWindowPos(ImVec2(6, 6));
+    ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x - 12, 90 * ui_scale()));
+    ImGui::Begin("Game status", nullptr,
+                 ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoSavedSettings |
+                     ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoBackground);
+    ImGui::SetWindowFontScale(1.25f * ui_scale());
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1, 210 / 255.0f, 100 / 255.0f, 1));
+    ImGui::TextWrapped("%s", text.c_str());
+    ImGui::PopStyleColor();
+    ImGui::End();
 }
 
 void draw_info_screen(SDL_Renderer *renderer, const std::string &title,
                       const std::vector<std::string> &lines, const std::string &hint)
 {
-    draw_header(renderer, title);
-    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-    for (size_t index = 0; index < lines.size(); ++index)
-    {
-        SDL_RenderDebugText(renderer, MENU_LEFT / MENU_TEXT_SCALE,
-                            (MENU_TOP + index * 32.0f) / MENU_TEXT_SCALE, lines[index].c_str());
-    }
-    SDL_SetRenderDrawColor(renderer, 200, 200, 200, 255);
-    SDL_RenderDebugText(renderer, MENU_LEFT / MENU_TEXT_SCALE, 820 / MENU_TEXT_SCALE, hint.c_str());
-    SDL_SetRenderScale(renderer, 1.0f, 1.0f);
+    (void)renderer;
+    begin_screen(title);
+    for (const auto &line : lines)
+        ImGui::TextWrapped("%s", line.c_str());
+    ImGui::Spacing();
+    ImGui::TextWrapped("%s", hint.c_str());
+    ImGui::End();
 }

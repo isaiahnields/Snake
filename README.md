@@ -1,6 +1,28 @@
 # Snake
 Cross-platform Snake game with trainable AI players
 
+## UI and builds
+
+Menus, buttons, training information, and game status use Dear ImGui with its
+SDL3 platform and SDLRenderer3 backends. The game board remains SDL-rendered.
+Keyboard shortcuts (arrows, Enter/Space, number keys, and Escape) are unchanged;
+menu buttons also support mouse clicks and touch. Buttons activate on release,
+and unavailable options still explain that the feature is not implemented.
+
+CMake fetches pinned SDL3 and Dear ImGui dependencies (network access is required
+on the first configure). Android uses the bundled SDL3 AAR and fetches the same
+ImGui sources for its native build.
+
+```sh
+cmake -S . -B build
+cmake --build build --config Debug
+ctest --test-dir build -C Debug --output-on-failure
+```
+
+The UI follows the window size, while the game board retains its letterboxed
+logical resolution. ImGui settings are not written to disk. Backend resources
+are shut down before the SDL renderer and window are destroyed.
+
 ## Commit-time linting
 
 To block commits to `main` when lint checks fail, enable the repository's local

@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   publish-nightly-build:
-    name: Publish nightly (${{ matrix.os }}) build
+    name: Publish nightly ${{ matrix.os }} build
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -58,6 +58,7 @@ jobs:
           path: ${{ matrix.artifact }}.tar.gz
           if-no-files-found: error
           retention-days: 14
+          archive: false
 
   create-nightly-release:
     name: Create nightly release

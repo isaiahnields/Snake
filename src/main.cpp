@@ -86,7 +86,7 @@ int main(int argc, char *argv[])
         return 1;
     }
     if (!SDL_SetRenderLogicalPresentation(renderer, WINDOW_WIDTH, WINDOW_HEIGHT,
-                                         SDL_LOGICAL_PRESENTATION_LETTERBOX))
+                                          SDL_LOGICAL_PRESENTATION_LETTERBOX))
     {
         std::cerr << "Render presentation Error: " << SDL_GetError() << std::endl;
         SDL_DestroyRenderer(renderer);

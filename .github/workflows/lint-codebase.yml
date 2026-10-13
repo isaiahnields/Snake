@@ -7,7 +7,7 @@ on:
 
 jobs:
   lint-codebase:
-    name: Lint codebase
+    name: Lint codebase on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:

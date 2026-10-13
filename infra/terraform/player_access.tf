@@ -4,14 +4,14 @@
 
 data "aws_iam_policy_document" "player" {
   statement {
-    sid = "ManualPlaySettingsReadWrite"
+    sid = "UserPlaySettingsReadWrite"
     actions = [
       "dynamodb:GetItem",
       "dynamodb:PutItem",
       "dynamodb:UpdateItem",
       "dynamodb:DeleteItem",
     ]
-    resources = [aws_dynamodb_table.manual_play_settings.arn]
+    resources = [aws_dynamodb_table.user_play_settings.arn]
 
     condition {
       test     = "ForAllValues:StringEquals"

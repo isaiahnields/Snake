@@ -78,6 +78,7 @@ jobs:
 
       - name: Make gradlew executable
         run: chmod +x ./gradlew
+        working-directory: android
 
       - name: Lint
         run: ./gradlew spotlessCheck

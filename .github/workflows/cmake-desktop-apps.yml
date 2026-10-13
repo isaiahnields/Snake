@@ -1,6 +1,9 @@
 name: CMake desktop apps
 on:
   pull_request:
+  push:
+    branches:
+      - main
   workflow_dispatch:
 jobs:
   cmake-dekstop-apps:
@@ -181,8 +184,8 @@ jobs:
         sleep 2
         screencapture -x "$screenshot_path"
         test -s "$screenshot_path"
-          
-      # --- WINDOWS: Run GUI and capture screenshot (using PowerShell/.NET or tool) ---      
+
+      # --- WINDOWS: Run GUI and capture screenshot (using PowerShell/.NET or tool) ---
     - name: Run GUI & Capture Screenshot (Windows)
       if: runner.os == 'Windows'
       shell: pwsh
@@ -191,7 +194,7 @@ jobs:
         if (-not (Test-Path $exe)) {
           throw "Executable not found: $exe"
         }
-        
+
         $readyFile = Join-Path $env:RUNNER_TEMP "snake-ui-ready.txt"
         Remove-Item -LiteralPath $readyFile -ErrorAction SilentlyContinue
         $process = Start-Process -FilePath $exe -ArgumentList "--ready-file=$readyFile" -PassThru

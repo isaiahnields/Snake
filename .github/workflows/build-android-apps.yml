@@ -2,6 +2,9 @@ name: Build Android apps
 
 on:
   pull_request:
+  push:
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
@@ -52,27 +55,27 @@ jobs:
             echo "Starting ADB Server..."
             /usr/local/lib/android/sdk/platform-tools/adb kill-server
             /usr/local/lib/android/sdk/platform-tools/adb start-server
-            
+
             # 2. Block until the ADB bridge says the emulator is online (prevents device offline errors)
             echo "Waiting for ADB hardware bridge..."
             /usr/local/lib/android/sdk/platform-tools/adb wait-for-device
-            
+
             # 3. Safely loop until Android completes its boot cycle
             echo "Waiting for Android OS to complete boot..."
 
             until [ "$( /usr/local/lib/android/sdk/platform-tools/adb shell getprop sys.boot_completed | tr -d '\r' )" = "1" ]; do echo "Waiting for emulator to boot..."; sleep 2; done
-            
+
             echo "Emulator is completely ready!"
-            
+
             # Install your SDL3 APK
             /usr/local/lib/android/sdk/platform-tools/adb install -r android/app/build/outputs/apk/debug/app-debug.apk
-            
+
             # Launch your SDL3 activity (replace with your package and activity name)
             ACTIVITY_PATH=$(/usr/local/lib/android/sdk/platform-tools/adb shell cmd package resolve-activity --brief com.isaiahnields.snake | tail -n 1); /usr/local/lib/android/sdk/platform-tools/adb shell am start -n "$ACTIVITY_PATH"
 
             # Wait a few seconds for the SDL3 surface/renderer to render frames
             sleep 5
-            
+
             # Capture screenshot
             /usr/local/lib/android/sdk/platform-tools/adb shell screencap -p > screenshot-android-${{ matrix.api-level }}-${{ matrix.target }}.png
 

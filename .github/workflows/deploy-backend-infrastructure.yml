@@ -137,7 +137,7 @@ jobs:
         with:
           role-to-assume: ${{ needs.config.outputs.apply_role_arn }}
           aws-region: ${{ needs.config.outputs.aws_region }}
-          role-duration-seconds: 7200
+          audience: sts.amazonaws.com
 
       - name: Terraform init
         run: >

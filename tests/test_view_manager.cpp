@@ -166,8 +166,7 @@ void test_ai_views()
 
     press(manager, SDLK_5);
     CHECK(showing(manager, ViewId::AIControlCenter, MenuPage::Test));
-    CHECK(manager.active().as_menu()->details().at(0) ==
-          "Visual AI testing is not implemented.");
+    CHECK(manager.active().as_menu()->details().at(0) == "Visual AI testing is not implemented.");
     press(manager, SDLK_1);
     CHECK(showing(manager, ViewId::AIControlCenter, MenuPage::Test));
     CHECK(notice(manager) == "Not implemented yet. No changes were made.");

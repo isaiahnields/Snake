@@ -37,8 +37,7 @@ jobs:
         run: |
           if [[ "$RUNNER_OS" == "Linux" ]]; then
             sudo apt-get update
-            sudo apt-get install --yes clang-tidy
-            sudo apt install --yes libx11-dev libxext-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libxss-dev libwayland-dev libkbcommon-dev
+            sudo apt install --yes clang-tidy libx11-dev libxext-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libxss-dev libwayland-dev libkbcommon-dev
           elif [[ "$RUNNER_OS" == "Windows" ]]; then
             choco install llvm --yes --no-progress
             echo 'C:\Program Files\LLVM\bin' >> "$GITHUB_PATH"

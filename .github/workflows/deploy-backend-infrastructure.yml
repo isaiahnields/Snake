@@ -19,9 +19,20 @@ env:
   TERRAFORM_VERSION: '1.16.5'
   TF_IN_AUTOMATION: 'true'
   TF_INPUT: 'false'
-  TF_VAR_aws_region: ${{ vars.AWS_REGION }}
+  TF_VAR_aws_region: us-west-2
 
 jobs:
+  config:
+    name: Load configuration
+    runs-on: ubuntu-latest
+    outputs:
+      apply_role_arn: arn:aws:iam::688019016509:role/snake-terraform-apply
+      aws_region: us-west-2
+      plan_role_arn: arn:aws:iam::688019016509:role/snake-terraform-plan
+      state_bucket: snake-terraform-state-688019016509-us-west-2
+    steps:
+      - run: echo "Exposing hardcoded configuration as job outputs."
+
   validate:
     name: Validate Terraform
     runs-on: ubuntu-latest
@@ -46,18 +57,13 @@ jobs:
           terraform -chdir=infra/terraform init -backend=false
           terraform -chdir=infra/terraform validate
 
-      - name: Report missing AWS configuration
-        if: vars.AWS_PLAN_ROLE_ARN == '' || vars.AWS_APPLY_ROLE_ARN == '' || vars.TF_STATE_BUCKET == '' || vars.AWS_REGION == ''
-        run: >
-          echo "::notice::Plan and apply are skipped until the AWS_REGION, TF_STATE_BUCKET,
-          AWS_PLAN_ROLE_ARN and AWS_APPLY_ROLE_ARN repository variables are set. See infra/README.md."
-
   plan:
     name: Plan
-    needs: validate
+    needs: [config, validate]
     # Fork pull requests cannot request OIDC tokens.
     if: >-
-      vars.AWS_PLAN_ROLE_ARN != '' && vars.TF_STATE_BUCKET != '' && vars.AWS_REGION != '' &&
+      needs.config.outputs.plan_role_arn != '' && needs.config.outputs.state_bucket != '' &&
+      needs.config.outputs.aws_region != '' &&
       (github.event_name != 'pull_request' ||
        github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
@@ -77,14 +83,14 @@ jobs:
 
       - uses: aws-actions/configure-aws-credentials@v6
         with:
-          role-to-assume: ${{ vars.AWS_PLAN_ROLE_ARN }}
-          aws-region: ${{ vars.AWS_REGION }}
+          role-to-assume: ${{ needs.config.outputs.plan_role_arn }}
+          aws-region: ${{ needs.config.outputs.aws_region }}
 
       - name: Terraform init
         run: >
           terraform init
-          -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}"
-          -backend-config="region=${{ vars.AWS_REGION }}"
+          -backend-config="bucket=${{ needs.config.outputs.state_bucket }}"
+          -backend-config="region=${{ needs.config.outputs.aws_region }}"
 
       # Plans never write state, so the read-only plan role skips locking.
       - name: Terraform plan
@@ -103,8 +109,8 @@ jobs:
 
   apply:
     name: Apply
-    needs: plan
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.AWS_APPLY_ROLE_ARN != ''
+    needs: [config, plan]
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && needs.config.outputs.apply_role_arn != ''
     runs-on: ubuntu-latest
     # Configure required reviewers on this environment to gate applies.
     environment: production
@@ -127,15 +133,15 @@ jobs:
 
       - uses: aws-actions/configure-aws-credentials@v6
         with:
-          role-to-assume: ${{ vars.AWS_APPLY_ROLE_ARN }}
-          aws-region: ${{ vars.AWS_REGION }}
+          role-to-assume: ${{ needs.config.outputs.apply_role_arn }}
+          aws-region: ${{ needs.config.outputs.aws_region }}
           role-duration-seconds: 7200
 
       - name: Terraform init
         run: >
           terraform init
-          -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}"
-          -backend-config="region=${{ vars.AWS_REGION }}"
+          -backend-config="bucket=${{ needs.config.outputs.state_bucket }}"
+          -backend-config="region=${{ needs.config.outputs.aws_region }}"
 
       - name: Terraform plan
         run: terraform plan -lock-timeout=10m -out=tfplan

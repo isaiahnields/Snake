@@ -13,7 +13,7 @@ variable "project" {
 variable "github_repository" {
   description = "GitHub repository (owner/name) allowed to assume the Terraform roles."
   type        = string
-  default     = "isaiahnields/Snake"
+  default     = "isaiahnields/snake"
 }
 
 variable "github_default_branch" {

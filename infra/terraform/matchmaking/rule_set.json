@@ -1,0 +1,43 @@
+{
+  "name": "snake_free_for_all",
+  "ruleLanguageVersion": "1.0",
+  "playerAttributes": [
+    {
+      "name": "skill",
+      "type": "number",
+      "default": 1000
+    }
+  ],
+  "teams": [
+    {
+      "name": "snakes",
+      "minPlayers": 2,
+      "maxPlayers": 4
+    }
+  ],
+  "rules": [
+    {
+      "name": "SimilarSkill",
+      "description": "Every player's skill is close to the match average",
+      "type": "distance",
+      "measurements": ["flatten(teams[*].players.attributes[skill])"],
+      "referenceValue": "avg(flatten(teams[*].players.attributes[skill]))",
+      "maxDistance": 200
+    }
+  ],
+  "expansions": [
+    {
+      "target": "rules[SimilarSkill].maxDistance",
+      "steps": [
+        {
+          "waitTimeSeconds": 15,
+          "value": 500
+        },
+        {
+          "waitTimeSeconds": 30,
+          "value": 100000
+        }
+      ]
+    }
+  ]
+}

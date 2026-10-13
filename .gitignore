@@ -48,3 +48,12 @@ android/app/build/*
 android/build/*
 app/.gradle/*
 !.vscode/settings.json
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+.terraform.tfstate.lock.info
+tfplan
+crash.log
+infra/terraform/.build/

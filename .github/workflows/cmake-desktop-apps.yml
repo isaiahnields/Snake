@@ -53,10 +53,6 @@ jobs:
     steps:
     - uses: actions/checkout@v7
 
-    - name: Install SDL
-      shell: bash
-      run: git clone https://github.com/libsdl-org/SDL.git vendored/SDL
-
     - name: Install Build Dependencies
       if: runner.os == 'Linux'
       shell: bash

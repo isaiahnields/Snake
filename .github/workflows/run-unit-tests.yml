@@ -17,10 +17,6 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Install SDL
-        shell: bash
-        run: git clone https://github.com/libsdl-org/SDL.git vendored/SDL
-
       - name: Install Linux dependencies
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y libx11-dev libxext-dev libxcursor-dev libxi-dev libxrandr-dev libxss-dev libxtst-dev

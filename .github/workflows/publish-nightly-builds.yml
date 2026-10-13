@@ -73,6 +73,6 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           tag_name: nightly-${{ github.run_id }}-${{ github.run_attempt }}
-          name: Nightly build ${{ github.run_number }}.${{ github.run_attempt }}
+          name: Nightly builds v${{ github.run_number }}.${{ github.run_attempt }}
           prerelease: true
           files: ./*.tar.gz

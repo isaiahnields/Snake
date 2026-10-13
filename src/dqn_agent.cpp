@@ -1,7 +1,16 @@
 #include "dqn_agent.h"
 
 #include <algorithm>
-#include <cstdlib>
+#include <random>
+
+namespace
+{
+std::mt19937 &random_engine()
+{
+    static std::mt19937 engine(std::random_device{}());
+    return engine;
+}
+} // namespace
 
 DQNAgent::DQNAgent()
     : policy_net({7, 128, 64, 3}, learning_rate), target_net({7, 128, 64, 3}, learning_rate)
@@ -11,9 +20,11 @@ DQNAgent::DQNAgent()
 
 Action DQNAgent::get_action(const std::vector<float> &state, bool training)
 {
-    if (training && (float)rand() / RAND_MAX < epsilon)
+    std::uniform_real_distribution<float> probability(0.0f, 1.0f);
+    if (training && probability(random_engine()) < epsilon)
     {
-        return static_cast<Action>(rand() % 3);
+        std::uniform_int_distribution<int> action(0, 2);
+        return static_cast<Action>(action(random_engine()));
     }
 
     std::vector<float> q_values = policy_net.forward(state);
@@ -52,9 +63,10 @@ void DQNAgent::train()
 
     std::vector<size_t> sample_indices;
     sample_indices.reserve(BATCH_SIZE);
+    std::uniform_int_distribution<size_t> sample(0, replay_buffer.size() - 1);
     for (size_t i = 0; i < BATCH_SIZE; ++i)
     {
-        sample_indices.push_back(rand() % replay_buffer.size());
+        sample_indices.push_back(sample(random_engine()));
     }
 
     for (size_t idx : sample_indices)

@@ -4,8 +4,6 @@
 
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
-#include <cstdlib>
-#include <ctime>
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -61,8 +59,6 @@ bool HandleAppEvents(void *userdata, SDL_Event *event)
 
 int main(int argc, char *argv[])
 {
-    srand(static_cast<unsigned>(time(nullptr)));
-
     std::string ready_file_path;
     constexpr char ready_file_argument[] = "--ready-file=";
     for (int index = 1; index < argc; ++index)

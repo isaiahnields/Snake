@@ -84,14 +84,14 @@ resource "aws_dynamodb_table" "user_game" {
 }
 
 # Games played by AI players during training and testing.
-#   owner_id (S, PK), game_key (S, SK) = "<ai_player_id>#<train|test>#<game_id>",
+#   owner_id (S, PK), game_id (S, SK) = "<ai_player_id>#<train|test>#<game_id>",
 #   ai_player_id, phase (train|test), episode (N), score (N), telemetry_s3_uri
-# Query with begins_with(game_key, "<ai_player_id>#test#") to list one phase.
+# Query with begins_with(game_id, "<ai_player_id>#test#") to list one phase.
 resource "aws_dynamodb_table" "ai_game" {
   name                        = "${local.name_prefix}-ai-game"
   billing_mode                = "PAY_PER_REQUEST"
   hash_key                    = "owner_id"
-  range_key                   = "game_key"
+  range_key                   = "game_id"
   deletion_protection_enabled = var.deletion_protection
 
   attribute {
@@ -100,7 +100,7 @@ resource "aws_dynamodb_table" "ai_game" {
   }
 
   attribute {
-    name = "game_key"
+    name = "game_id"
     type = "S"
   }
 

@@ -11,7 +11,7 @@ data "aws_iam_policy_document" "player" {
       "dynamodb:UpdateItem",
       "dynamodb:DeleteItem",
     ]
-    resources = [aws_dynamodb_table.user_play_settings.arn]
+    resources = [aws_dynamodb_table.user_settings.arn]
 
     condition {
       test     = "ForAllValues:StringEquals"
@@ -29,7 +29,7 @@ data "aws_iam_policy_document" "player" {
       "dynamodb:BatchGetItem",
       "dynamodb:Query",
     ]
-    resources = [aws_dynamodb_table.ai_players.arn]
+    resources = [aws_dynamodb_table.ai_player.arn]
 
     condition {
       test     = "ForAllValues:StringEquals"
@@ -47,8 +47,8 @@ data "aws_iam_policy_document" "player" {
       "dynamodb:PutItem",
     ]
     resources = [
-      aws_dynamodb_table.user_games.arn,
-      aws_dynamodb_table.ai_games.arn,
+      aws_dynamodb_table.user_game.arn,
+      aws_dynamodb_table.ai_game.arn,
     ]
 
     condition {

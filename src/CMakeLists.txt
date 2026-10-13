@@ -1,7 +1,5 @@
 set(SNAKE_CORE_SOURCES
     snake_game.cpp
-    neural_network.cpp
-    dqn_agent.cpp
     renderer.cpp
     ready_file.cpp
     session_state.cpp
@@ -10,8 +8,6 @@ set(SNAKE_CORE_SOURCES
     views/main_menu_view.cpp
     views/manual_game_view.cpp
     views/ai_control_center_view.cpp
-    views/train_ai_view.cpp
-    views/test_ai_view.cpp
     views/train_cloud_ai_view.cpp
     views/hall_of_fame_view.cpp
     views/settings_view.cpp

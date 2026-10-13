@@ -17,7 +17,7 @@ std::string SaveAndExitView::title() const
 std::vector<std::string> SaveAndExitView::details() const
 {
     return {"There is no persistent data to save yet.",
-            "Quitting discards the session's learned DQN weights."};
+            "Quitting discards the session's scores and preferences."};
 }
 
 std::vector<MenuItem> SaveAndExitView::items() const

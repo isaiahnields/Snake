@@ -117,9 +117,18 @@ void test_ai_views()
     press(manager, SDLK_3);
     CHECK(showing(manager, ViewId::AIControlCenter, MenuPage::AI));
     CHECK(manager.active().as_menu()->items().size() == 7);
+    CHECK(manager.active().as_menu()->details().at(0) == "No active AI is available.");
+
+    press(manager, SDLK_1);
+    CHECK(showing(manager, ViewId::AIControlCenter, MenuPage::Profiles));
+    CHECK(!manager.active().as_menu()->items().at(0).available);
+    press(manager, SDLK_1);
+    CHECK(notice(manager) == "Not implemented yet. No changes were made.");
+    press(manager, SDLK_ESCAPE);
 
     press(manager, SDLK_3);
     CHECK(showing(manager, ViewId::AIControlCenter, MenuPage::Train));
+    CHECK(manager.active().as_menu()->details().at(0) == "AI training is not implemented.");
     press(manager, SDLK_1);
     CHECK(session.training_episodes == 100);
     press(manager, SDLK_1);
@@ -137,7 +146,12 @@ void test_ai_views()
 
     press(manager, SDLK_3);
     CHECK(showing(manager, ViewId::AIControlCenter, MenuPage::Train));
-    CHECK(!notice(manager).empty());
+    CHECK(notice(manager) == "Not implemented yet. No changes were made.");
+    CHECK(session.training_episodes == 10);
+    CHECK(!session.visual_training);
+    manager.update();
+    CHECK(showing(manager, ViewId::AIControlCenter, MenuPage::Train));
+    CHECK(session.best_ai_scores.empty());
 
     press(manager, SDLK_ESCAPE);
     CHECK(showing(manager, ViewId::AIControlCenter, MenuPage::AI));
@@ -152,12 +166,16 @@ void test_ai_views()
 
     press(manager, SDLK_5);
     CHECK(showing(manager, ViewId::AIControlCenter, MenuPage::Test));
+    CHECK(manager.active().as_menu()->details().at(0) ==
+          "Visual AI testing is not implemented.");
     press(manager, SDLK_1);
     CHECK(showing(manager, ViewId::AIControlCenter, MenuPage::Test));
-    CHECK(!notice(manager).empty());
+    CHECK(notice(manager) == "Not implemented yet. No changes were made.");
     press(manager, SDLK_2);
     CHECK(showing(manager, ViewId::AIControlCenter, MenuPage::Test));
     CHECK(!notice(manager).empty());
+    manager.update();
+    CHECK(showing(manager, ViewId::AIControlCenter, MenuPage::Test));
     CHECK(session.best_ai_scores.empty());
 
     manager.open_page(MenuPage::AIGames);
@@ -173,6 +191,8 @@ void test_exit_and_input_filtering()
     CHECK(showing(manager, ViewId::MainMenu, MenuPage::Main));
     press(manager, SDLK_ESCAPE);
     CHECK(showing(manager, ViewId::SaveAndExit, MenuPage::Exit));
+    CHECK(manager.active().as_menu()->details().at(1) ==
+          "Quitting discards the session's scores and preferences.");
     press(manager, SDLK_ESCAPE);
     CHECK(showing(manager, ViewId::MainMenu, MenuPage::Main));
     press(manager, SDLK_9);
@@ -259,13 +279,45 @@ void test_every_page()
     CHECK(visited.size() == static_cast<std::size_t>(page_count));
 }
 
+void test_session_state()
+{
+    ViewManager first;
+    ViewManager second;
+    SessionState &session = first.session();
+    const SessionState &other = second.session();
+    CHECK(session.training_episodes == 1000);
+    CHECK(session.visual_training);
+    CHECK(session.best_manual_scores.empty());
+    CHECK(session.best_ai_scores.empty());
+
+    session.training_episodes = 10;
+    session.visual_training = false;
+    record_score(session.best_manual_scores, 7);
+    record_score(session.best_ai_scores, 4);
+    first.open_page(MenuPage::Train);
+    first.open_page(MenuPage::Main);
+    CHECK(session.training_episodes == 10);
+    CHECK(!session.visual_training);
+    CHECK((session.best_manual_scores == std::vector<int>{7}));
+    CHECK((session.best_ai_scores == std::vector<int>{4}));
+    CHECK(other.training_episodes == 1000);
+    CHECK(other.visual_training);
+    CHECK(other.best_manual_scores.empty());
+    CHECK(other.best_ai_scores.empty());
+}
+
 void test_record_score()
 {
     std::vector<int> scores;
+    CHECK(format_scores(scores).empty());
     for (const int score : {3, 9, 1, 9, 4, 7, 2})
         record_score(scores, score);
     CHECK((scores == std::vector<int>{9, 9, 7, 4, 3}));
     CHECK(format_scores(scores) == "9, 9, 7, 4, 3");
+    record_score(scores, 0);
+    CHECK((scores == std::vector<int>{9, 9, 7, 4, 3}));
+    record_score(scores, 10);
+    CHECK((scores == std::vector<int>{10, 9, 9, 7, 4}));
 }
 } // namespace
 
@@ -275,6 +327,7 @@ int main()
     test_ai_views();
     test_exit_and_input_filtering();
     test_every_page();
+    test_session_state();
     test_record_score();
     return TEST_RESULT();
 }

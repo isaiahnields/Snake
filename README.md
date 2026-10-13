@@ -1,5 +1,10 @@
 # Snake
-Cross-platform Snake game with trainable AI players
+Cross-platform Snake game with planned AI players
+
+Manual play is available. AI profiles, algorithms, training, and testing are
+not implemented; their menu options report that they are unavailable. Session
+state contains training preferences and score lists, not an AI agent. Scores
+and preferences remain in memory only and are discarded when the game exits.
 
 ## UI and builds
 

@@ -42,8 +42,6 @@ enum class MenuAction
     StartManualGame,
     CycleTrainingEpisodes,
     ToggleTrainingRenderMode,
-    StartTraining,
-    RunVisualTest,
     Quit
 };
 

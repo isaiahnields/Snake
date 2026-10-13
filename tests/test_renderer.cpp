@@ -163,21 +163,33 @@ static void test_ui_and_board(SDL_Renderer *renderer, SDL_Surface *surface)
     CHECK(pixel_is(surface, 2 * CELL_SIZE + 5, 2 * CELL_SIZE + 5, 50, 255, 50));
     CHECK(pixel_is(surface, 1 * CELL_SIZE + 5, 2 * CELL_SIZE + 5, 30, 150, 30));
 
-    manager.open(ViewId::TrainAI);
+    manager.open_page(MenuPage::Train);
     manager.render();
     CHECK(render_scale_is_reset(renderer));
     CHECK(ImGui::GetDrawData()->TotalVtxCount > 0);
-    CHECK(pixel_is(surface, (GRID_WIDTH / 2) * CELL_SIZE + 5, (GRID_HEIGHT / 2) * CELL_SIZE + 5, 50,
-                   255, 50));
-    manager.session().visual_training = false;
+    click(manager, MENU_LEFT + 20, MENU_TOP + 2 * MENU_ROW_HEIGHT + 20);
+    CHECK(manager.active_id() == ViewId::AIControlCenter);
+    CHECK(manager.active().as_menu()->page == MenuPage::Train);
+    CHECK(manager.active().as_menu()->notice == "Not implemented yet. No changes were made.");
+    press(manager, SDLK_2);
+    CHECK(!manager.session().visual_training);
     manager.render();
     CHECK(render_scale_is_reset(renderer));
     CHECK(ImGui::GetDrawData()->TotalVtxCount > 0);
-    manager.open(ViewId::TestAI);
+    click(manager, MENU_LEFT + 20, MENU_TOP + 2 * MENU_ROW_HEIGHT + 20);
+    CHECK(manager.active_id() == ViewId::AIControlCenter);
+    CHECK(manager.active().as_menu()->page == MenuPage::Train);
+    CHECK(manager.active().as_menu()->notice == "Not implemented yet. No changes were made.");
+
+    manager.open_page(MenuPage::Test);
     manager.render();
     CHECK(ImGui::GetDrawData()->TotalVtxCount > 0);
-    CHECK(pixel_is(surface, (GRID_WIDTH / 2) * CELL_SIZE + 5, (GRID_HEIGHT / 2) * CELL_SIZE + 5, 50,
-                   255, 50));
+    touch(manager, SDL_EVENT_FINGER_DOWN, 1, MENU_LEFT + 20, MENU_TOP + 20);
+    touch(manager, SDL_EVENT_FINGER_UP, 1, MENU_LEFT + 20, MENU_TOP + 20);
+    CHECK(manager.active_id() == ViewId::AIControlCenter);
+    CHECK(manager.active().as_menu()->page == MenuPage::Test);
+    CHECK(manager.active().as_menu()->notice == "Not implemented yet. No changes were made.");
+    CHECK(manager.session().best_ai_scores.empty());
 }
 
 static void test_window_backend()

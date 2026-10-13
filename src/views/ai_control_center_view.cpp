@@ -44,16 +44,16 @@ std::vector<std::string> AIControlCenterView::details() const
         return {"Profile creation and editable fields are not implemented.",
                 "Shown values are proposed defaults, not active settings."};
     case MenuPage::Algorithms:
-        return {"Only the built-in DQN agent is currently available.",
+        return {"AI algorithms are not implemented.",
                 "Algorithm selection requires the profile system."};
     case MenuPage::Train:
-        return {"Training uses the active in-memory DQN agent.",
-                "Escape stops training; learned weights remain this session."};
+        return {"AI training is not implemented.",
+                "Episode count and render mode are session preferences only."};
     case MenuPage::Test:
-        return {"Visual testing runs one game with the session DQN.",
+        return {"Visual AI testing is not implemented.",
                 "Batch benchmarks are not implemented."};
     default:
-        return {"Active AI: session DQN (in memory only).",
+        return {"No active AI is available.",
                 "Named profiles, saving and deletion are not implemented."};
     }
 }
@@ -64,7 +64,7 @@ std::vector<MenuItem> AIControlCenterView::items() const
     switch (page)
     {
     case MenuPage::Profiles:
-        return {menu_unavailable("[x] Session DQN (Active)", page), center};
+        return {menu_unavailable("Select Active AI Profile", page), center};
     case MenuPage::CreateProfile:
         return {menu_unavailable("Enter AI Name: <unnamed>", page),
                 menu_link("Choose Core Algorithm", MenuPage::Algorithms),
@@ -105,6 +105,7 @@ std::vector<MenuItem> AIControlCenterView::items() const
 
 void AIControlCenterView::perform(MenuAction action, ViewManager &manager)
 {
+    (void)manager;
     switch (action)
     {
     case MenuAction::CycleTrainingEpisodes:
@@ -116,12 +117,6 @@ void AIControlCenterView::perform(MenuAction action, ViewManager &manager)
     case MenuAction::ToggleTrainingRenderMode:
         session_.visual_training = !session_.visual_training;
         notice.clear();
-        break;
-    case MenuAction::StartTraining:
-        manager.open(ViewId::TrainAI);
-        break;
-    case MenuAction::RunVisualTest:
-        manager.open(ViewId::TestAI);
         break;
     default:
         break;

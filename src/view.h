@@ -10,8 +10,6 @@ enum class ViewId
     MainMenu,
     ManualGame,
     AIControlCenter,
-    TrainAI,
-    TestAI,
     TrainCloudAI,
     HallOfFame,
     Settings,

@@ -7,8 +7,6 @@
 #include "views/replay_vault_menu.h"
 #include "views/save_and_exit_view.h"
 #include "views/settings_view.h"
-#include "views/test_ai_view.h"
-#include "views/train_ai_view.h"
 #include "views/train_cloud_ai_view.h"
 
 #include <imgui.h>
@@ -29,8 +27,6 @@ ViewManager::ViewManager(SDL_Renderer *renderer) : renderer_(renderer)
     views_[index_of(ViewId::MainMenu)] = std::make_unique<MainMenuView>();
     views_[index_of(ViewId::ManualGame)] = std::make_unique<ManualGameView>(session_);
     views_[index_of(ViewId::AIControlCenter)] = std::make_unique<AIControlCenterView>(session_);
-    views_[index_of(ViewId::TrainAI)] = std::make_unique<TrainAIView>(session_);
-    views_[index_of(ViewId::TestAI)] = std::make_unique<TestAIView>(session_);
     views_[index_of(ViewId::TrainCloudAI)] = std::make_unique<TrainCloudAIView>();
     views_[index_of(ViewId::HallOfFame)] = std::make_unique<HallOfFameView>(session_);
     views_[index_of(ViewId::Settings)] = std::make_unique<SettingsView>();

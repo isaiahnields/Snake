@@ -23,5 +23,6 @@
         "**/android/.gradle": true,
         "**/android/.idea": true
     },
-    "editor.formatOnSave": true
+    "editor.formatOnSave": true,
+    "git.autofetch": true
 }

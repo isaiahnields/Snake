@@ -1,25 +1,15 @@
 #include "app_events.h"
 #include "game_types.h"
+#include "ready_file.h"
 #include "view_manager.h"
 
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
-#include <fstream>
 #include <iostream>
-#include <string>
 
 int main(int argc, char *argv[])
 {
-    std::string ready_file_path;
-    constexpr char ready_file_argument[] = "--ready-file=";
-    for (int index = 1; index < argc; ++index)
-    {
-        const std::string argument = argv[index];
-        if (argument.rfind(ready_file_argument, 0) == 0)
-        {
-            ready_file_path = argument.substr(sizeof(ready_file_argument) - 1);
-        }
-    }
+    ReadyFile::instance().configure_from_arguments(argc, argv);
 
 #ifdef SDL_PLATFORM_ANDROID
     SDL_SetEventFilter(HandleAppEvents, nullptr);
@@ -52,7 +42,6 @@ int main(int argc, char *argv[])
 
     {
         ViewManager views(renderer);
-        bool ready_file_created = false;
 
         while (!views.quit_requested())
         {
@@ -65,20 +54,9 @@ int main(int argc, char *argv[])
             views.update();
             views.render();
 
-            if (!ready_file_created && !ready_file_path.empty())
+            if (!ReadyFile::instance().upsert())
             {
-                std::ofstream ready_file(ready_file_path);
-                if (!ready_file)
-                {
-                    std::cerr << "Unable to create readiness file: " << ready_file_path
-                              << std::endl;
-                    views.request_quit();
-                }
-                else
-                {
-                    ready_file << "ready\n";
-                    ready_file_created = true;
-                }
+                views.request_quit();
             }
 
             const int delay = views.frame_delay_ms();

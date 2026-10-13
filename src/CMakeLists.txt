@@ -3,6 +3,7 @@ set(SNAKE_CORE_SOURCES
     neural_network.cpp
     dqn_agent.cpp
     renderer.cpp
+    ready_file.cpp
     session_state.cpp
     view_manager.cpp
     views/menu_view.cpp

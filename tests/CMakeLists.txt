@@ -18,5 +18,10 @@ add_executable(test_view_manager test_view_manager.cpp)
 target_link_libraries(test_view_manager PRIVATE snake_core)
 add_test(NAME view_manager COMMAND test_view_manager)
 
+add_executable(test_ready_file test_ready_file.cpp)
+target_link_libraries(test_ready_file PRIVATE snake_core)
+add_test(NAME ready_file COMMAND test_ready_file)
+
 add_custom_target(all_tests DEPENDS
-    test_snake_game test_neural_network test_dqn_agent test_renderer test_view_manager)
+    test_snake_game test_neural_network test_dqn_agent test_renderer test_view_manager
+    test_ready_file)

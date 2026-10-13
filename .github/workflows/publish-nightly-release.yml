@@ -60,6 +60,7 @@ jobs:
           archive: false
 
   create-nightly-android-apk:
+    name: Create nightly Android APK
     runs-on: ubuntu-latest
 
     steps:

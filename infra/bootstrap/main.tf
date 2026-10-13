@@ -234,6 +234,19 @@ resource "aws_iam_role" "apply" {
   max_session_duration = 7200
 }
 
+resource "aws_iam_role_policy" "apply_assume_role_with_web_identity" {
+  name = "assume-role-with-web-identity"
+  role = aws_iam_role.apply.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = "sts:AssumeRoleWithWebIdentity"
+      Resource = "*"
+    }]
+  })
+}
+
 resource "aws_iam_role_policy_attachment" "apply_read_only" {
   role       = aws_iam_role.apply.name
   policy_arn = "arn:${local.partition}:iam::aws:policy/ReadOnlyAccess"

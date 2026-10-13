@@ -61,7 +61,7 @@ resource "aws_lambda_function" "ai_players" {
 
   environment {
     variables = {
-      AI_PLAYERS_TABLE = aws_dynamodb_table.ai_players.name
+      AI_PLAYER_TABLE = aws_dynamodb_table.ai_player.name
     }
   }
 

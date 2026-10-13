@@ -21,10 +21,10 @@ output "cognito_identity_pool_id" {
 output "dynamodb_tables" {
   description = "DynamoDB table names keyed by purpose."
   value = {
-    user_play_settings   = aws_dynamodb_table.user_play_settings.name
-    ai_players           = aws_dynamodb_table.ai_players.name
-    user_games           = aws_dynamodb_table.user_games.name
-    ai_games             = aws_dynamodb_table.ai_games.name
+    user_play_settings = aws_dynamodb_table.user_play_settings.name
+    ai_players         = aws_dynamodb_table.ai_players.name
+    user_games         = aws_dynamodb_table.user_games.name
+    ai_games           = aws_dynamodb_table.ai_games.name
   }
 }
 

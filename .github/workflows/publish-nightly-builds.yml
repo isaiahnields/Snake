@@ -70,7 +70,7 @@ jobs:
           merge-multiple: true
 
       - name: Publish release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: nightly-${{ github.run_id }}-${{ github.run_attempt }}
           name: Nightly build ${{ github.run_number }}.${{ github.run_attempt }}

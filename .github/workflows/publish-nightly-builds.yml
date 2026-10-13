@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 jobs:
-  publish-nightly-build:
+  create-nightly-builds:
     name: Publish nightly ${{ matrix.os }} build
     runs-on: ${{ matrix.os }}
     strategy:
@@ -60,9 +60,9 @@ jobs:
           retention-days: 14
           archive: false
 
-  create-nightly-release:
-    name: Create nightly release
-    needs: publish-nightly-build
+  publish-nightly-release:
+    name: Publish nightly release
+    needs: create-nightly-builds
     runs-on: ubuntu-latest
     steps:
       - name: Download nightly builds

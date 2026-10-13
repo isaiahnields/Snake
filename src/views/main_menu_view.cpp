@@ -15,8 +15,8 @@ std::string MainMenuView::title() const
 std::vector<MenuItem> MainMenuView::items() const
 {
     return {menu_link("Play Game (Manual Mode)", MenuPage::Play),
-            menu_link("Hall of Fame (Best Games & Metrics)", MenuPage::HallOfFame),
             menu_link("AI Control Center (Create, Select, Train, Test)", MenuPage::AI),
+            menu_link("Hall of Fame (Best Games & Metrics)", MenuPage::HallOfFame),
             menu_link("Replay Vault (Browse Recordings)", MenuPage::Vault),
             menu_link("Settings", MenuPage::Settings),
             menu_link("Exit Game", MenuPage::Exit)};

@@ -48,7 +48,7 @@ void draw_menu(SDL_Renderer *renderer, const Menu &menu)
     }
     SDL_SetRenderScale(renderer, MENU_TEXT_SCALE, MENU_TEXT_SCALE);
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-    draw_centered_menu_label(renderer, "SNAKE: AI EVOLUTION", title_rect);
+    draw_centered_menu_label(renderer, "SNAKE", title_rect);
     const SDL_FRect subtitle = {MENU_LEFT, 110.0f, MENU_ROW_WIDTH, 40.0f};
     draw_centered_menu_label(renderer, menu.title().c_str(), subtitle);
     const auto details = menu.details();

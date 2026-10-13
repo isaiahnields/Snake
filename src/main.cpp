@@ -1,5 +1,4 @@
 #include "app_events.h"
-#include "dqn_agent.h"
 #include "renderer.h"
 #include "snake_game.h"
 
@@ -8,7 +7,6 @@
 #include <fstream>
 #include <iostream>
 #include <string>
-#include <vector>
 
 int main(int argc, char *argv[])
 {
@@ -57,12 +55,8 @@ int main(int argc, char *argv[])
     bool quit = false;
 
     SnakeGame game;
-    DQNAgent agent;
 
-    int episode = 1;
     const int MANUAL_DELAY = 100;
-    const int TRAINING_DELAY = 0;
-    const int AI_DELAY = 100;
     bool ready_file_created = false;
 
     uint32_t last_move_time = SDL_GetTicks();
@@ -73,12 +67,9 @@ int main(int argc, char *argv[])
             quit = true;
             return;
         }
-        if (action == MenuAction::None) return;
-        mode = action == MenuAction::Manual     ? MANUAL
-               : action == MenuAction::Training ? TRAINING
-                                                : AI_PLAY;
+        if (action != MenuAction::Manual) return;
+        mode = MANUAL;
         game.reset();
-        episode = 1;
         last_move_time = SDL_GetTicks();
     };
 
@@ -125,9 +116,7 @@ int main(int argc, char *argv[])
                 {
                     if (mode != MENU)
                     {
-                        menu.notice = mode == MANUAL
-                                          ? "Manual game stopped."
-                                          : "Session stopped. DQN weights remain in memory.";
+                        menu.notice = "Manual game stopped.";
                         mode = MENU;
                     }
                     else
@@ -199,62 +188,6 @@ int main(int argc, char *argv[])
                 {
                     std::cout << "Game Over! Score: " << game.score << std::endl;
                     game.reset();
-                }
-
-                last_move_time = current_time;
-            }
-
-            draw_game(renderer, game);
-            SDL_Delay(16);
-        }
-        else if (mode == TRAINING)
-        {
-            std::vector<float> state = game.get_state_vector();
-            Action action = agent.get_action(state, true);
-            float reward = game.step(action);
-            std::vector<float> next_state = game.get_state_vector();
-
-            agent.store_transition(state, action, reward, next_state, game.game_over);
-            agent.train();
-
-            if (game.game_over)
-            {
-                agent.decay_epsilon();
-                if (episode % 50 == 0)
-                {
-                    std::cout << "Episode: " << episode << " | Score: " << game.score
-                              << " | Epsilon: " << agent.epsilon << std::endl;
-                }
-                game.reset();
-                ++episode;
-                if (episode > menu.training_episodes)
-                {
-                    mode = MENU;
-                    menu.notice = "Training complete: " + std::to_string(menu.training_episodes) +
-                                  " episodes. Weights remain in memory.";
-                }
-            }
-
-            if (menu.visual_training && mode == TRAINING)
-            {
-                draw_game(renderer, game);
-            }
-            SDL_Delay(menu.visual_training ? 16 : TRAINING_DELAY);
-        }
-        else if (mode == AI_PLAY)
-        {
-            uint32_t current_time = SDL_GetTicks();
-            if (current_time - last_move_time >= AI_DELAY)
-            {
-                std::vector<float> state = game.get_state_vector();
-                Action action = agent.get_action(state, false);
-                game.step(action);
-
-                if (game.game_over)
-                {
-                    std::cout << "AI Game Over! Score: " << game.score << std::endl;
-                    mode = MENU;
-                    menu.notice = "AI test complete. Score: " + std::to_string(game.score);
                 }
 
                 last_move_time = current_time;

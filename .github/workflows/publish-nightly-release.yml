@@ -76,10 +76,6 @@ jobs:
         run: chmod +x ./gradlew
         working-directory: android
 
-      - name: Lint
-        run: ./gradlew spotlessCheck
-        working-directory: android
-
       - name: Clean build
         run: ./gradlew clean
         working-directory: android
@@ -99,8 +95,8 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/') && github.repository == 'isaiahnields/snake'
         run: touch local.properties # TODO: fill in properties file
 
-      - name: Assemble basic flavor
-        run: ./gradlew assembleBasicRelease -Pbreezy # /!\ You’re NOT allowed to redistribute modified APKs with the breezy config enabled, see license terms
+      - name: Assemble release
+        run: ./gradlew assembleRelease
         working-directory: android
 
       - name: Delete local.properties

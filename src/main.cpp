@@ -78,8 +78,8 @@ int main(int argc, char *argv[])
 
     SDL_Window *window = nullptr;
     SDL_Renderer *renderer = nullptr;
-    if (!SDL_CreateWindowAndRenderer("Snake", WINDOW_WIDTH, WINDOW_HEIGHT, SDL_WINDOW_RESIZABLE,
-                                     &window, &renderer))
+    if (!SDL_CreateWindowAndRenderer("Snake: AI Evolution", WINDOW_WIDTH, WINDOW_HEIGHT,
+                                     SDL_WINDOW_RESIZABLE, &window, &renderer))
     {
         std::cerr << "Window Error: " << SDL_GetError() << std::endl;
         SDL_Quit();
@@ -96,8 +96,7 @@ int main(int argc, char *argv[])
     }
 
     GameMode mode = MENU;
-    constexpr GameMode menu_modes[] = {MANUAL, TRAINING, AI_PLAY};
-    int menu_selection = 0;
+    Menu menu;
     bool quit = false;
 
     SnakeGame game;
@@ -110,6 +109,21 @@ int main(int argc, char *argv[])
     bool ready_file_created = false;
 
     uint32_t last_move_time = SDL_GetTicks();
+    const auto activate_menu = [&](MenuAction action)
+    {
+        if (action == MenuAction::Quit)
+        {
+            quit = true;
+            return;
+        }
+        if (action == MenuAction::None) return;
+        mode = action == MenuAction::Manual     ? MANUAL
+               : action == MenuAction::Training ? TRAINING
+                                                : AI_PLAY;
+        game.reset();
+        episode = 1;
+        last_move_time = SDL_GetTicks();
+    };
 
     while (!quit)
     {
@@ -118,39 +132,69 @@ int main(int argc, char *argv[])
         {
             if (event.type == SDL_EVENT_QUIT)
             {
-                quit = true;
+                mode = MENU;
+                menu.open(MenuPage::Exit);
+            }
+            else if (mode == MENU && (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN ||
+                                      event.type == SDL_EVENT_FINGER_DOWN))
+            {
+                if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN &&
+                    (event.button.button != SDL_BUTTON_LEFT ||
+                     event.button.which == SDL_TOUCH_MOUSEID))
+                    continue;
+                if (event.type == SDL_EVENT_FINGER_DOWN &&
+                    event.tfinger.touchID == SDL_MOUSE_TOUCHID)
+                    continue;
+                if (!SDL_ConvertEventToRenderCoordinates(renderer, &event))
+                {
+                    std::cerr << "Menu input conversion error: " << SDL_GetError() << std::endl;
+                    continue;
+                }
+                const float x =
+                    event.type == SDL_EVENT_MOUSE_BUTTON_DOWN ? event.button.x : event.tfinger.x;
+                const float y =
+                    event.type == SDL_EVENT_MOUSE_BUTTON_DOWN ? event.button.y : event.tfinger.y;
+                const int selected = menu_item_at(x, y, menu);
+                if (selected >= 0)
+                {
+                    menu.selection = selected;
+                    activate_menu(menu.activate());
+                }
             }
             else if (event.type == SDL_EVENT_KEY_DOWN)
             {
+                if (event.key.repeat) continue;
                 if (event.key.key == SDLK_ESCAPE)
                 {
                     if (mode != MENU)
                     {
+                        menu.notice = mode == MANUAL
+                                          ? "Manual game stopped."
+                                          : "Session stopped. DQN weights remain in memory.";
                         mode = MENU;
-                        menu_selection = 0;
                     }
                     else
                     {
-                        quit = true;
+                        menu.back();
                     }
                 }
                 else if (mode == MENU)
                 {
                     if (event.key.key == SDLK_UP)
                     {
-                        menu_selection = (menu_selection - 1 + 3) % 3;
+                        menu.move(-1);
                     }
                     else if (event.key.key == SDLK_DOWN)
                     {
-                        menu_selection = (menu_selection + 1) % 3;
+                        menu.move(1);
                     }
                     else if (event.key.key == SDLK_RETURN || event.key.key == SDLK_SPACE)
                     {
-                        mode = menu_modes[menu_selection];
-                        game.reset();
-                        agent.epsilon = 1.0f;
-                        episode = 1;
-                        last_move_time = SDL_GetTicks();
+                        activate_menu(menu.activate());
+                    }
+                    else if (event.key.key >= SDLK_0 && event.key.key <= SDLK_9)
+                    {
+                        activate_menu(menu.shortcut(static_cast<int>(event.key.key - SDLK_0)));
                     }
                 }
                 else if (mode == MANUAL)
@@ -169,7 +213,7 @@ int main(int argc, char *argv[])
 
         if (mode == MENU)
         {
-            draw_menu(renderer, menu_modes[menu_selection]);
+            draw_menu(renderer, menu);
             if (!ready_file_created && !ready_file_path.empty())
             {
                 std::ofstream ready_file(ready_file_path);
@@ -185,6 +229,7 @@ int main(int argc, char *argv[])
                     ready_file_created = true;
                 }
             }
+            SDL_Delay(16);
         }
         else if (mode == MANUAL)
         {
@@ -225,13 +270,19 @@ int main(int argc, char *argv[])
                 }
                 game.reset();
                 ++episode;
+                if (episode > menu.training_episodes)
+                {
+                    mode = MENU;
+                    menu.notice = "Training complete: " + std::to_string(menu.training_episodes) +
+                                  " episodes. Weights remain in memory.";
+                }
             }
 
-            if (episode % 10 == 0)
+            if (menu.visual_training && mode == TRAINING)
             {
                 draw_game(renderer, game);
             }
-            SDL_Delay(TRAINING_DELAY);
+            SDL_Delay(menu.visual_training ? 16 : TRAINING_DELAY);
         }
         else if (mode == AI_PLAY)
         {
@@ -245,8 +296,8 @@ int main(int argc, char *argv[])
                 if (game.game_over)
                 {
                     std::cout << "AI Game Over! Score: " << game.score << std::endl;
-                    game.reset();
-                    episode++;
+                    mode = MENU;
+                    menu.notice = "AI test complete. Score: " + std::to_string(game.score);
                 }
 
                 last_move_time = current_time;

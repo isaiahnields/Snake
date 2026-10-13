@@ -20,15 +20,34 @@ int main()
     CHECK(renderer != nullptr);
     if (!renderer) return 1;
 
-    // Menu: background plus highlighted option for the selected mode.
-    draw_menu(renderer, TRAINING);
+    Menu menu;
+    menu.selection = 2;
+    draw_menu(renderer, menu);
     CHECK(pixel_is(surface, 1, 1, 30, 30, 30));
-    const int menu_x = (WINDOW_WIDTH - 300) / 2;
-    const int menu_y = (WINDOW_HEIGHT - 350) / 2;
-    CHECK(pixel_is(surface, menu_x + 2, menu_y + 2, 100, 200, 255));
-    const int options_y = menu_y + 60 + 40;
-    CHECK(pixel_is(surface, menu_x + 2, options_y + 2, 100, 150, 100));
-    CHECK(pixel_is(surface, menu_x + 2, options_y + 100 + 2, 100, 255, 100));
+    CHECK(pixel_is(surface, 42, 42, 100, 200, 255));
+    CHECK(pixel_is(surface, 42, 292, 45, 45, 45));
+    CHECK(pixel_is(surface, 42, 396, 50, 120, 85));
+    CHECK(menu_item_at(MENU_LEFT + 2, MENU_TOP + 2, menu) == 0);
+    CHECK(menu_item_at(MENU_LEFT + 2, MENU_TOP + 2 * MENU_ROW_HEIGHT + 2, menu) == 2);
+    CHECK(menu_item_at(MENU_LEFT - 1, MENU_TOP, menu) == -1);
+    CHECK(menu_item_at(MENU_LEFT + MENU_ROW_WIDTH, MENU_TOP, menu) == -1);
+    CHECK(menu_item_at(MENU_LEFT, MENU_TOP - 1, menu) == -1);
+    CHECK(menu_item_at(MENU_LEFT, MENU_TOP + MENU_ROW_HEIGHT - 1, menu) == -1);
+    CHECK(menu_item_at(MENU_LEFT, MENU_TOP + 6 * MENU_ROW_HEIGHT, menu) == -1);
+
+    for (int page = static_cast<int>(MenuPage::Main); page <= static_cast<int>(MenuPage::Exit);
+         ++page)
+    {
+        menu.open(static_cast<MenuPage>(page));
+        draw_menu(renderer, menu);
+        float scale_x, scale_y;
+        CHECK(SDL_GetRenderScale(renderer, &scale_x, &scale_y));
+        CHECK(scale_x == 1.0f && scale_y == 1.0f);
+        CHECK(MENU_TOP + menu.items().size() * MENU_ROW_HEIGHT < 770);
+        for (const auto &item : menu.items())
+            CHECK((item.label.size() + 3) * SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE * 1.25f <
+                  MENU_ROW_WIDTH - 24);
+    }
 
     // Game: food, head and body colors.
     SnakeGame game;

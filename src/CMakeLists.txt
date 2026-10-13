@@ -3,6 +3,7 @@ set(SNAKE_CORE_SOURCES
     neural_network.cpp
     dqn_agent.cpp
     renderer.cpp
+    menu.cpp
 )
 
 add_library(snake_core ${SNAKE_CORE_SOURCES})

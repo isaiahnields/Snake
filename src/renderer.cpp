@@ -4,11 +4,7 @@
 
 namespace
 {
-constexpr float MENU_WIDTH = 300.0f;
-constexpr float TITLE_HEIGHT = 60.0f;
-constexpr float OPTION_HEIGHT = 50.0f;
-constexpr float MENU_TEXT_SCALE = 2.0f;
-constexpr float MENU_HEIGHT = 350.0f;
+constexpr float MENU_TEXT_SCALE = 1.25f;
 
 void draw_centered_menu_label(SDL_Renderer *renderer, const char *text, const SDL_FRect &bounds)
 {
@@ -21,37 +17,67 @@ void draw_centered_menu_label(SDL_Renderer *renderer, const char *text, const SD
 }
 } // namespace
 
-void draw_menu(SDL_Renderer *renderer, GameMode selected_mode)
+int menu_item_at(float x, float y, const Menu &menu)
+{
+    if (x < MENU_LEFT || x >= MENU_LEFT + MENU_ROW_WIDTH || y < MENU_TOP) return -1;
+    const int row = static_cast<int>((y - MENU_TOP) / MENU_ROW_HEIGHT);
+    if (row >= static_cast<int>(menu.items().size()) ||
+        y - MENU_TOP - row * MENU_ROW_HEIGHT >= MENU_ROW_HEIGHT - 6)
+        return -1;
+    return row;
+}
+
+void draw_menu(SDL_Renderer *renderer, const Menu &menu)
 {
     SDL_SetRenderDrawColor(renderer, 30, 30, 30, 255);
     SDL_RenderClear(renderer);
 
-    const float menu_x = (WINDOW_WIDTH - MENU_WIDTH) / 2.0f;
-    const float menu_y = (WINDOW_HEIGHT - MENU_HEIGHT) / 2.0f;
-    const float options_y = menu_y + TITLE_HEIGHT + 40.0f;
-
-    SDL_FRect title_rect = {menu_x, menu_y, MENU_WIDTH, TITLE_HEIGHT};
+    const SDL_FRect title_rect = {MENU_LEFT, 40.0f, MENU_ROW_WIDTH, 60.0f};
     SDL_SetRenderDrawColor(renderer, 100, 200, 255, 255);
     SDL_RenderFillRect(renderer, &title_rect);
 
-    SDL_FRect option1_rect = {menu_x, options_y, MENU_WIDTH, OPTION_HEIGHT};
-    SDL_SetRenderDrawColor(renderer, 100, selected_mode == MANUAL ? 255 : 150, 100, 255);
-    SDL_RenderFillRect(renderer, &option1_rect);
-
-    SDL_FRect option2_rect = {menu_x, options_y + 100.0f, MENU_WIDTH, OPTION_HEIGHT};
-    SDL_SetRenderDrawColor(renderer, 100, selected_mode == TRAINING ? 255 : 150, 100, 255);
-    SDL_RenderFillRect(renderer, &option2_rect);
-
-    SDL_FRect option3_rect = {menu_x, options_y + 200.0f, MENU_WIDTH, OPTION_HEIGHT};
-    SDL_SetRenderDrawColor(renderer, 100, selected_mode == AI_PLAY ? 255 : 150, 100, 255);
-    SDL_RenderFillRect(renderer, &option3_rect);
-
+    const auto entries = menu.items();
+    for (size_t index = 0; index < entries.size(); ++index)
+    {
+        const SDL_FRect bounds = {MENU_LEFT, MENU_TOP + index * MENU_ROW_HEIGHT, MENU_ROW_WIDTH,
+                                  MENU_ROW_HEIGHT - 6};
+        const bool selected = static_cast<int>(index) == menu.selection;
+        SDL_SetRenderDrawColor(renderer, selected ? 50 : 45, selected ? 120 : 45,
+                               selected ? 85 : 45, 255);
+        SDL_RenderFillRect(renderer, &bounds);
+    }
     SDL_SetRenderScale(renderer, MENU_TEXT_SCALE, MENU_TEXT_SCALE);
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-    draw_centered_menu_label(renderer, "SNAKE", title_rect);
-    draw_centered_menu_label(renderer, "Manual", option1_rect);
-    draw_centered_menu_label(renderer, "Training", option2_rect);
-    draw_centered_menu_label(renderer, "AI Play", option3_rect);
+    draw_centered_menu_label(renderer, "SNAKE: AI EVOLUTION", title_rect);
+    const SDL_FRect subtitle = {MENU_LEFT, 110.0f, MENU_ROW_WIDTH, 40.0f};
+    draw_centered_menu_label(renderer, menu.title().c_str(), subtitle);
+    const auto details = menu.details();
+    for (size_t index = 0; index < details.size(); ++index)
+    {
+        SDL_RenderDebugText(renderer, MENU_LEFT / MENU_TEXT_SCALE,
+                            (170.0f + index * 24.0f) / MENU_TEXT_SCALE, details[index].c_str());
+    }
+    for (size_t index = 0; index < entries.size(); ++index)
+    {
+        SDL_SetRenderDrawColor(renderer, entries[index].available ? 255 : 170,
+                               entries[index].available ? 255 : 170,
+                               entries[index].available ? 255 : 170, 255);
+        const int number = menu.page == MenuPage::Main && index == entries.size() - 1
+                               ? 0
+                               : static_cast<int>(index) + 1;
+        const std::string text = std::to_string(number) + ". " + entries[index].label;
+        SDL_RenderDebugText(renderer, (MENU_LEFT + 12) / MENU_TEXT_SCALE,
+                            (MENU_TOP + index * MENU_ROW_HEIGHT + 16) / MENU_TEXT_SCALE,
+                            text.c_str());
+    }
+    SDL_SetRenderDrawColor(renderer, 255, 210, 100, 255);
+    SDL_RenderDebugText(renderer, MENU_LEFT / MENU_TEXT_SCALE, 770 / MENU_TEXT_SCALE,
+                        menu.notice.c_str());
+    SDL_SetRenderDrawColor(renderer, 200, 200, 200, 255);
+    SDL_RenderDebugText(renderer, MENU_LEFT / MENU_TEXT_SCALE, 820 / MENU_TEXT_SCALE,
+                        "Up/Down: Select   Enter: Open   Number: Open   Esc: Back");
+    SDL_RenderDebugText(renderer, MENU_LEFT / MENU_TEXT_SCALE, 848 / MENU_TEXT_SCALE,
+                        "Click or tap an option to open it.");
     SDL_SetRenderScale(renderer, 1.0f, 1.0f);
 
     SDL_RenderPresent(renderer);

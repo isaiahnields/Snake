@@ -14,5 +14,9 @@ add_executable(test_renderer test_renderer.cpp)
 target_link_libraries(test_renderer PRIVATE snake_core)
 add_test(NAME renderer COMMAND test_renderer)
 
+add_executable(test_menu test_menu.cpp)
+target_link_libraries(test_menu PRIVATE snake_core)
+add_test(NAME menu COMMAND test_menu)
+
 add_custom_target(all_tests DEPENDS
-    test_snake_game test_neural_network test_dqn_agent test_renderer)
+    test_snake_game test_neural_network test_dqn_agent test_renderer test_menu)

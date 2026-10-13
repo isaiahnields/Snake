@@ -1,0 +1,12 @@
+{
+    "java.configuration.updateBuildConfiguration": "automatic",
+    "git.detectSubmodules": false,
+    "java.import.gradle.enabled": false,
+    "java.gradle.buildServer.enabled": "off",
+    "java.autobuild.enabled": false,
+    "gradle.autoDetect": "off",
+    "gradle.nestedProjects": false,
+    "cmake.buildBeforeRun": false,
+    "cmake.ctest.neverDebugTestsWithLaunchConfiguration": false,
+    "files.autoSave": "afterDelay"
+}

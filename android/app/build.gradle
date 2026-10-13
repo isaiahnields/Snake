@@ -40,6 +40,16 @@ android {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
+
+    applicationVariants.all { variant ->
+        variant.outputs.all { output ->
+            def appName = "Snake"
+            def versionName = variant.versionName
+            def buildType = variant.buildType.name
+
+            outputFileName = "${appName}-${buildType}.apk"
+        }
+    }
 }
 
 dependencies {

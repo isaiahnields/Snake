@@ -1,6 +1,15 @@
 #include "snake_game.h"
 
-#include <cstdlib>
+#include <random>
+
+namespace
+{
+std::mt19937 &random_engine()
+{
+    static std::mt19937 engine(std::random_device{}());
+    return engine;
+}
+} // namespace
 
 SnakeGame::SnakeGame()
 {
@@ -21,10 +30,12 @@ void SnakeGame::reset()
 void SnakeGame::place_food()
 {
     if (snake.size() >= GRID_WIDTH * GRID_HEIGHT) return;
+    std::uniform_int_distribution<int> x_distribution(0, GRID_WIDTH - 1);
+    std::uniform_int_distribution<int> y_distribution(0, GRID_HEIGHT - 1);
     while (true)
     {
-        food.x = rand() % GRID_WIDTH;
-        food.y = rand() % GRID_HEIGHT;
+        food.x = x_distribution(random_engine());
+        food.y = y_distribution(random_engine());
         bool on_snake = false;
         for (const auto &p : snake)
         {

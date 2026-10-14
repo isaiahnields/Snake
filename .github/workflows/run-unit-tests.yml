@@ -13,7 +13,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        test: [snake_game, renderer, view_manager, ready_file, auth]
+        test: [snake_game, renderer, view_manager, ready_file, auth, gamepad_input]
     steps:
       - uses: actions/checkout@v7
 

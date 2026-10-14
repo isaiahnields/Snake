@@ -228,6 +228,24 @@ static void test_window_backend()
             manager.render();
             CHECK(manager.active_id() == ViewId::ManualGame);
             CHECK(!static_cast<ManualGameView &>(manager.active()).playing());
+            press(manager, SDLK_1);
+            auto &manual = static_cast<ManualGameView &>(manager.active());
+            const SDL_WindowID window_id = SDL_GetWindowID(window);
+            for (const auto &size : {Point{1200, 600}, Point{600, 1200}})
+            {
+                CHECK(SDL_SetWindowSize(window, size.x, size.y));
+                SDL_PumpEvents();
+                manual.game().dir = RIGHT;
+                touch(manager, SDL_EVENT_FINGER_DOWN, 1, 300, 300, size.x, size.y, window_id);
+                touch(manager, SDL_EVENT_FINGER_MOTION, 1, 300, 280, size.x, size.y, window_id);
+                CHECK(manual.game().dir == RIGHT);
+                touch(manager, SDL_EVENT_FINGER_MOTION, 1, 330, 250, size.x, size.y, window_id);
+                CHECK(manual.game().dir == UP);
+                touch(manager, SDL_EVENT_FINGER_UP, 1, 330, 250, size.x, size.y, window_id);
+                touch(manager, SDL_EVENT_FINGER_DOWN, 1, 300, 300, size.x, size.y, window_id);
+                touch(manager, SDL_EVENT_FINGER_UP, 1, 250, 330, size.x, size.y, window_id);
+                CHECK(manual.game().dir == LEFT);
+            }
             int width = 0, height = 0;
             SDL_RendererLogicalPresentation presentation;
             CHECK(SDL_GetRenderLogicalPresentation(renderer, &width, &height, &presentation));

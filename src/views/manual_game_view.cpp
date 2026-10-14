@@ -2,6 +2,8 @@
 
 #include "../renderer.h"
 
+#include <algorithm>
+#include <cmath>
 #include <iostream>
 
 ManualGameView::ManualGameView(SessionState &session) : MenuView(MenuPage::Play), session_(session)
@@ -40,6 +42,7 @@ void ManualGameView::on_enter(ViewManager &manager)
 {
     MenuView::on_enter(manager);
     playing_ = false;
+    swipe_active_ = false;
 }
 
 void ManualGameView::handle_event(ViewManager &manager, const SDL_Event &event)
@@ -49,22 +52,84 @@ void ManualGameView::handle_event(ViewManager &manager, const SDL_Event &event)
         MenuView::handle_event(manager, event);
         return;
     }
+    if (event.type == SDL_EVENT_WINDOW_FOCUS_LOST || event.type == SDL_EVENT_DID_ENTER_BACKGROUND)
+        swipe_active_ = false;
+    if (event.type == SDL_EVENT_FINGER_DOWN || event.type == SDL_EVENT_FINGER_MOTION ||
+        event.type == SDL_EVENT_FINGER_UP || event.type == SDL_EVENT_FINGER_CANCELED)
+    {
+        handle_touch(event);
+        return;
+    }
     if (event.type != SDL_EVENT_KEY_DOWN) return;
 
     const SDL_Keycode key = event.key.key;
     if (key == SDLK_ESCAPE)
     {
         playing_ = false;
+        swipe_active_ = false;
         open(MenuPage::Play, "Manual game stopped.");
     }
-    else if (key == SDLK_UP && game_.dir != DOWN)
-        game_.dir = UP;
-    else if (key == SDLK_DOWN && game_.dir != UP)
-        game_.dir = DOWN;
-    else if (key == SDLK_LEFT && game_.dir != RIGHT)
-        game_.dir = LEFT;
-    else if (key == SDLK_RIGHT && game_.dir != LEFT)
-        game_.dir = RIGHT;
+    else if (key == SDLK_UP)
+        change_direction(UP);
+    else if (key == SDLK_DOWN)
+        change_direction(DOWN);
+    else if (key == SDLK_LEFT)
+        change_direction(LEFT);
+    else if (key == SDLK_RIGHT)
+        change_direction(RIGHT);
+}
+
+void ManualGameView::change_direction(Direction direction)
+{
+    if ((static_cast<int>(direction) + 2) % 4 != game_.dir) game_.dir = direction;
+}
+
+void ManualGameView::handle_touch(const SDL_Event &event)
+{
+    const SDL_TouchFingerEvent &finger = event.tfinger;
+    if (finger.touchID == SDL_MOUSE_TOUCHID) return;
+    if (event.type == SDL_EVENT_FINGER_DOWN)
+    {
+        if (swipe_active_) return;
+        swipe_width_ = WINDOW_WIDTH;
+        swipe_height_ = WINDOW_HEIGHT;
+        if (finger.windowID != 0)
+        {
+            SDL_Window *window = SDL_GetWindowFromID(finger.windowID);
+            if (window == nullptr || !SDL_GetWindowSize(window, &swipe_width_, &swipe_height_))
+            {
+                std::cerr << "Swipe coordinate error: " << SDL_GetError() << std::endl;
+                return;
+            }
+        }
+        swipe_active_ = true;
+        swipe_handled_ = false;
+        swipe_touch_ = finger.touchID;
+        swipe_finger_ = finger.fingerID;
+        swipe_x_ = finger.x;
+        swipe_y_ = finger.y;
+        return;
+    }
+    if (!swipe_active_ || finger.touchID != swipe_touch_ || finger.fingerID != swipe_finger_)
+        return;
+    if (event.type == SDL_EVENT_FINGER_CANCELED)
+    {
+        swipe_active_ = false;
+        return;
+    }
+    if (!swipe_handled_)
+    {
+        const float dx = (finger.x - swipe_x_) * swipe_width_;
+        const float dy = (finger.y - swipe_y_) * swipe_height_;
+        const float threshold = 0.04f * std::min(swipe_width_, swipe_height_);
+        if (std::max(std::abs(dx), std::abs(dy)) >= threshold)
+        {
+            change_direction(std::abs(dx) > std::abs(dy) ? (dx > 0 ? RIGHT : LEFT)
+                                                         : (dy > 0 ? DOWN : UP));
+            swipe_handled_ = true;
+        }
+    }
+    if (event.type == SDL_EVENT_FINGER_UP) swipe_active_ = false;
 }
 
 void ManualGameView::update(ViewManager &manager, Uint64 now_ms)
@@ -78,6 +143,7 @@ void ManualGameView::update(ViewManager &manager, Uint64 now_ms)
         std::cout << "Game Over! Score: " << game_.score << std::endl;
         record_score(session_.best_manual_scores, game_.score);
         game_.reset();
+        swipe_active_ = false;
     }
 }
 
@@ -104,6 +170,7 @@ void ManualGameView::perform(MenuAction action, ViewManager &manager)
     (void)manager;
     if (action != MenuAction::StartManualGame) return;
     playing_ = true;
+    swipe_active_ = false;
     game_.reset();
     timer_.reset();
 }

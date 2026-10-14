@@ -35,6 +35,7 @@ void SignUpOrSignInView::render(SDL_Renderer *renderer) const
     if (draw_menu_button("1. Sign Up", selection_ == 0, 48)) clicked_ = 0;
     if (draw_menu_button("2. Sign In", selection_ == 1, 48)) clicked_ = 1;
     ImGui::TextWrapped("W/S or Up/Down: Select   Enter: Open   Esc: Exit");
+    ImGui::TextWrapped("Controller: D-pad/left stick: Select   A/Cross: Open   B/Circle: Exit");
     ImGui::End();
 }
 

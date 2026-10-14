@@ -1,6 +1,7 @@
 set(SNAKE_CORE_SOURCES
     cognito_client.cpp
     cognito_http.cpp
+    gamepad_input.cpp
     snake_game.cpp
     renderer.cpp
     ready_file.cpp

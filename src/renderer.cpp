@@ -88,6 +88,7 @@ int draw_menu(SDL_Renderer *renderer, const MenuView &menu)
     ImGui::PopStyleColor();
     ImGui::TextWrapped("W/S or Up/Down: Select   Enter: Open   Number: Open   Esc: Back");
     ImGui::TextWrapped("Click or tap an option to open it.");
+    ImGui::TextWrapped("Controller: D-pad/left stick: Select   A/Cross: Open   B/Circle: Back");
     ImGui::PopStyleVar();
     ImGui::PopID();
     ImGui::End();

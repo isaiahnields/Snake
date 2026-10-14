@@ -24,6 +24,18 @@ void press(ViewManager &manager, SDL_Keycode key)
     manager.handle_event(key_event(key));
 }
 
+void touch(ViewManager &manager, SDL_EventType type, float x, float y, SDL_FingerID finger = 1,
+           SDL_TouchID device = 1)
+{
+    SDL_Event event{};
+    event.type = type;
+    event.tfinger.touchID = device;
+    event.tfinger.fingerID = finger;
+    event.tfinger.x = x;
+    event.tfinger.y = y;
+    manager.handle_event(event);
+}
+
 void click(ViewManager &manager, float x, float y, Uint8 button = SDL_BUTTON_LEFT)
 {
     SDL_Event event{};
@@ -108,6 +120,112 @@ void test_main_menu_and_manual_game()
     CHECK(starts_with(manager.active().as_menu()->details().at(0), "Best manual scores"));
     manager.open_page(MenuPage::AIGames);
     CHECK(starts_with(manager.active().as_menu()->details().at(0), "No AI test games"));
+}
+
+void test_manual_swipes()
+{
+    ViewManager manager;
+    press(manager, SDLK_1);
+    auto &manual = static_cast<ManualGameView &>(manager.active());
+    touch(manager, SDL_EVENT_FINGER_DOWN, 0.5f, 0.5f);
+    touch(manager, SDL_EVENT_FINGER_UP, 0.5f, 0.2f);
+    CHECK(!manual.playing());
+    press(manager, SDLK_1);
+
+    const auto swipe = [&](float dx, float dy)
+    {
+        touch(manager, SDL_EVENT_FINGER_DOWN, 0.5f, 0.5f);
+        touch(manager, SDL_EVENT_FINGER_UP, 0.5f + dx, 0.5f + dy);
+    };
+    swipe(0, -0.2f);
+    CHECK(manual.game().dir == UP);
+    swipe(-0.2f, 0);
+    CHECK(manual.game().dir == LEFT);
+    swipe(0, 0.2f);
+    CHECK(manual.game().dir == DOWN);
+    swipe(0.2f, 0);
+    CHECK(manual.game().dir == RIGHT);
+    for (const auto direction : {UP, RIGHT, DOWN, LEFT})
+    {
+        manual.game().dir = direction;
+        if (direction == UP) swipe(0, 0.2f);
+        if (direction == RIGHT) swipe(-0.2f, 0);
+        if (direction == DOWN) swipe(0, -0.2f);
+        if (direction == LEFT) swipe(0.2f, 0);
+        CHECK(manual.game().dir == direction);
+    }
+
+    manual.game().dir = RIGHT;
+    swipe(0, 0);
+    swipe(0, -0.039f);
+    CHECK(manual.game().dir == RIGHT);
+    touch(manager, SDL_EVENT_FINGER_DOWN, 0, 0);
+    touch(manager, SDL_EVENT_FINGER_MOTION, 0, 0.04f);
+    CHECK(manual.game().dir == DOWN);
+    touch(manager, SDL_EVENT_FINGER_MOTION, 0.2f, 0.04f);
+    touch(manager, SDL_EVENT_FINGER_UP, 0.2f, 0.04f);
+    CHECK(manual.game().dir == DOWN);
+
+    manual.game().dir = RIGHT;
+    swipe(-0.05f, -0.2f);
+    CHECK(manual.game().dir == UP);
+    swipe(-0.2f, 0.05f);
+    CHECK(manual.game().dir == LEFT);
+
+    manual.game().dir = RIGHT;
+    touch(manager, SDL_EVENT_FINGER_DOWN, 0.5f, 0.5f);
+    touch(manager, SDL_EVENT_FINGER_DOWN, 0.5f, 0.5f, 2);
+    touch(manager, SDL_EVENT_FINGER_UP, 0.5f, 0.2f, 2);
+    touch(manager, SDL_EVENT_FINGER_UP, 0.5f, 0.2f, 1, 2);
+    CHECK(manual.game().dir == RIGHT);
+    touch(manager, SDL_EVENT_FINGER_MOTION, 0.5f, 0.3f);
+    CHECK(manual.game().dir == UP);
+    touch(manager, SDL_EVENT_FINGER_UP, 0.5f, 0.3f);
+
+    manual.game().dir = RIGHT;
+    touch(manager, SDL_EVENT_FINGER_DOWN, 0.5f, 0.5f);
+    touch(manager, SDL_EVENT_FINGER_CANCELED, 0.5f, 0.2f);
+    touch(manager, SDL_EVENT_FINGER_UP, 0.5f, 0.2f);
+    CHECK(manual.game().dir == RIGHT);
+    touch(manager, SDL_EVENT_FINGER_DOWN, 0.5f, 0.5f, 1, SDL_MOUSE_TOUCHID);
+    touch(manager, SDL_EVENT_FINGER_UP, 0.5f, 0.2f, 1, SDL_MOUSE_TOUCHID);
+    CHECK(manual.game().dir == RIGHT);
+    swipe(0, -0.2f);
+    CHECK(manual.game().dir == UP);
+
+    for (const auto type : {SDL_EVENT_WINDOW_FOCUS_LOST, SDL_EVENT_DID_ENTER_BACKGROUND})
+    {
+        manual.game().dir = RIGHT;
+        touch(manager, SDL_EVENT_FINGER_DOWN, 0.5f, 0.5f);
+        SDL_Event event{};
+        event.type = type;
+        manager.handle_event(event);
+        touch(manager, SDL_EVENT_FINGER_UP, 0.5f, 0.2f);
+        CHECK(manual.game().dir == RIGHT);
+        swipe(0, -0.2f);
+        CHECK(manual.game().dir == UP);
+    }
+
+    touch(manager, SDL_EVENT_FINGER_DOWN, 0.5f, 0.5f);
+    press(manager, SDLK_ESCAPE);
+    press(manager, SDLK_1);
+    touch(manager, SDL_EVENT_FINGER_UP, 0.5f, 0.2f);
+    CHECK(manual.game().dir == RIGHT);
+    swipe(0, -0.2f);
+    CHECK(manual.game().dir == UP);
+    press(manager, SDLK_DOWN);
+    CHECK(manual.game().dir == UP);
+    press(manager, SDLK_LEFT);
+    CHECK(manual.game().dir == LEFT);
+
+    touch(manager, SDL_EVENT_FINGER_DOWN, 0.5f, 0.5f);
+    manual.game().snake = {{0, 0}};
+    manual.update(manager, 0);
+    manual.update(manager, ManualGameView::MOVE_INTERVAL_MS);
+    touch(manager, SDL_EVENT_FINGER_UP, 0.5f, 0.2f);
+    CHECK(manual.game().dir == RIGHT);
+    swipe(0, -0.2f);
+    CHECK(manual.game().dir == UP);
 }
 
 void test_ai_views()
@@ -333,6 +451,7 @@ void test_record_score()
 int main()
 {
     test_main_menu_and_manual_game();
+    test_manual_swipes();
     test_ai_views();
     test_exit_and_input_filtering();
     test_every_page();

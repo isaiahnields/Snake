@@ -33,4 +33,15 @@ class ManualGameView : public MenuView
     SnakeGame game_;
     StepTimer timer_;
     bool playing_ = false;
+    bool swipe_active_ = false;
+    bool swipe_handled_ = false;
+    SDL_TouchID swipe_touch_ = 0;
+    SDL_FingerID swipe_finger_ = 0;
+    float swipe_x_ = 0;
+    float swipe_y_ = 0;
+    int swipe_width_ = WINDOW_WIDTH;
+    int swipe_height_ = WINDOW_HEIGHT;
+
+    void change_direction(Direction direction);
+    void handle_touch(const SDL_Event &event);
 };

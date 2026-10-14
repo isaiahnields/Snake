@@ -1,14 +1,13 @@
 #include "view_manager.h"
 
 #include "views/ai_control_center_view.h"
-#include "views/ai_test_games_view.h"
 #include "views/ai_test_cloud_games_view.h"
+#include "views/ai_test_games_view.h"
 #include "views/ai_train_cloud_games_view.h"
 #include "views/ai_train_games_view.h"
 #include "views/forgot_password_view.h"
 #include "views/hall_of_fame_view.h"
 #include "views/main_menu_view.h"
-#include "views/user_game_view.h"
 #include "views/replay_vault_menu.h"
 #include "views/reset_password_view.h"
 #include "views/save_and_exit_view.h"
@@ -16,6 +15,7 @@
 #include "views/sign_in_view.h"
 #include "views/sign_up_or_sign_in_view.h"
 #include "views/sign_up_view.h"
+#include "views/user_game_view.h"
 #include "views/verify_account_view.h"
 
 #include <imgui.h>

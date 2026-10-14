@@ -12,5 +12,4 @@ class AIControlCenterView : public MenuView
     std::string title() const override;
     std::vector<std::string> details() const override;
     std::vector<MenuItem> items() const override;
-
 };

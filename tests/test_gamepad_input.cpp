@@ -9,6 +9,15 @@
 
 namespace
 {
+std::size_t connected_gamepad_count()
+{
+    int count = 0;
+    SDL_JoystickID *ids = SDL_GetGamepads(&count);
+    CHECK(ids != nullptr);
+    SDL_free(ids);
+    return static_cast<std::size_t>(count);
+}
+
 SDL_JoystickID attach_gamepad()
 {
     SDL_VirtualJoystickDesc desc{};
@@ -73,16 +82,17 @@ void move_stick(ViewManager &manager, SDL_JoystickID id, SDL_GamepadAxis axis, S
 
 void test_lifetime_and_mapping()
 {
+    const auto existing_count = connected_gamepad_count();
     const SDL_JoystickID id = attach_gamepad();
     {
         GamepadInput input;
-        CHECK(input.gamepads().size() == 1);
+        CHECK(input.gamepads().size() == existing_count + 1);
         CHECK(SDL_GetGamepadFromID(id) != nullptr);
         SDL_Event added{};
         added.type = SDL_EVENT_GAMEPAD_ADDED;
         added.gdevice.which = id;
         CHECK(!input.handle_event(added));
-        CHECK(input.gamepads().size() == 1);
+        CHECK(input.gamepads().size() == existing_count + 1);
 
         const std::pair<SDL_GamepadButton, SDL_Keycode> bindings[] = {
             {SDL_GAMEPAD_BUTTON_DPAD_UP, SDLK_UP},     {SDL_GAMEPAD_BUTTON_DPAD_DOWN, SDLK_DOWN},
@@ -110,11 +120,12 @@ void test_lifetime_and_mapping()
 
 void test_stick_and_focus()
 {
+    const auto existing_count = connected_gamepad_count();
     const SDL_JoystickID first = attach_gamepad();
     const SDL_JoystickID second = attach_gamepad();
     {
         GamepadInput input;
-        CHECK(input.gamepads().size() == 2);
+        CHECK(input.gamepads().size() == existing_count + 2);
         const auto axis = [&](SDL_JoystickID id, SDL_GamepadAxis which, Sint16 value)
         { return input.handle_event(axis_event(id, which, value)); };
         CHECK(!axis(first, SDL_GAMEPAD_AXIS_LEFTY, 15999));
@@ -157,7 +168,7 @@ void test_stick_and_focus()
         removed.type = SDL_EVENT_GAMEPAD_REMOVED;
         removed.gdevice.which = first;
         CHECK(!input.handle_event(removed));
-        CHECK(input.gamepads().size() == 1);
+        CHECK(input.gamepads().size() == existing_count + 1);
         CHECK(SDL_GetGamepadFromID(first) == nullptr);
         CHECK(!input.handle_event(button_event(first, SDL_GAMEPAD_BUTTON_SOUTH)));
     }
@@ -260,6 +271,82 @@ void ui_press(ViewManager &manager, SDL_JoystickID id, SDL_GamepadButton button)
     render_frames(manager);
 }
 
+void test_rendered_controller_game(SDL_Renderer *renderer)
+{
+    ViewManager manager(renderer);
+    authenticate_test_player(manager);
+    CHECK(manager.initialize_ui());
+    render_frames(manager);
+    const SDL_JoystickID first = attach_gamepad();
+    render_frames(manager);
+
+    ui_press(manager, first, SDL_GAMEPAD_BUTTON_SOUTH);
+    CHECK(manager.active_id() == ViewId::UserGame);
+    ui_press(manager, first, SDL_GAMEPAD_BUTTON_SOUTH);
+    auto &manual = static_cast<UserGameView &>(manager.view(ViewId::UserGame));
+    CHECK(manual.playing());
+    CHECK((ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_NavEnableGamepad) == 0);
+
+    const Point start = manual.game().snake.front();
+    ui_press(manager, first, SDL_GAMEPAD_BUTTON_DPAD_UP);
+    manual.update(manager, 0);
+    manual.update(manager, UserGameView::MOVE_INTERVAL_MS);
+    CHECK((manual.game().snake.front() == Point{start.x, start.y - 1}));
+
+    const SDL_JoystickID second = attach_gamepad();
+    render_frames(manager);
+    move_stick(manager, second, SDL_GAMEPAD_AXIS_LEFTX, -32768);
+    render_frames(manager);
+    manual.update(manager, 2 * UserGameView::MOVE_INTERVAL_MS);
+    CHECK((manual.game().snake.front() == Point{start.x - 1, start.y - 1}));
+
+    CHECK(SDL_DetachVirtualJoystick(first));
+    render_frames(manager);
+    CHECK(manual.playing());
+    ui_press(manager, second, SDL_GAMEPAD_BUTTON_EAST);
+    CHECK(!manual.playing());
+    CHECK(manual.page == MenuPage::Play);
+    ui_press(manager, second, SDL_GAMEPAD_BUTTON_EAST);
+    CHECK(manager.active_id() == ViewId::MainMenu);
+    CHECK(SDL_DetachVirtualJoystick(second));
+    render_frames(manager);
+}
+
+void test_controller_menu_pages(SDL_Renderer *renderer)
+{
+    const SDL_JoystickID id = attach_gamepad();
+    ViewManager manager(renderer);
+    authenticate_test_player(manager);
+    CHECK(manager.initialize_ui());
+    for (int value = static_cast<int>(MenuPage::Main); value <= static_cast<int>(MenuPage::Exit);
+         ++value)
+    {
+        const auto page = static_cast<MenuPage>(value);
+        manager.open_page(page);
+        render_frames(manager);
+        MenuView *menu = manager.active().as_menu();
+        CHECK(menu != nullptr);
+        if (menu == nullptr) continue;
+        const auto entries = menu->items();
+        ui_press(manager, id, SDL_GAMEPAD_BUTTON_DPAD_UP);
+        CHECK(menu->selection == static_cast<int>(entries.size()) - 1);
+        ui_press(manager, id, SDL_GAMEPAD_BUTTON_DPAD_DOWN);
+        CHECK(menu->selection == 0);
+        // Every menu's last item returns to its parent.
+        ui_press(manager, id, SDL_GAMEPAD_BUTTON_EAST);
+        CHECK(manager.active().as_menu() != nullptr);
+        CHECK(manager.active().as_menu()->page == entries.back().target);
+        manager.open_page(page);
+        render_frames(manager);
+        ui_press(manager, id, SDL_GAMEPAD_BUTTON_DPAD_UP);
+        ui_press(manager, id, SDL_GAMEPAD_BUTTON_SOUTH);
+        CHECK(manager.active().as_menu() != nullptr);
+        CHECK(manager.active().as_menu()->page == entries.back().target);
+    }
+    CHECK(SDL_DetachVirtualJoystick(id));
+    render_frames(manager);
+}
+
 void test_account_forms(SDL_Renderer *renderer)
 {
     const SDL_JoystickID id = attach_gamepad();
@@ -332,6 +419,8 @@ int main()
                                       SDL_WINDOW_HIDDEN, &window, &renderer));
     if (renderer != nullptr)
     {
+        test_rendered_controller_game(renderer);
+        test_controller_menu_pages(renderer);
         test_account_forms(renderer);
         SDL_DestroyRenderer(renderer);
         SDL_DestroyWindow(window);

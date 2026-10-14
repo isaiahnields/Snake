@@ -1,40 +1,6 @@
 # Snake
 Cross-platform Snake game with planned AI players
 
-## Player accounts
-
-The game opens with **Sign Up** and **Sign In** and requires authentication before
-the main menu. Both forms accept email and password. New players must enter the
-verification code Cognito emails them, then sign in. The forms can resend an
-email verification code. Existing accounts with software-token MFA enabled are
-prompted for their authenticator code.
-
-Accounts use the `snake-prod-players` Cognito pool (`us-west-2_UZ8VHBqRy`) in
-`us-west-2`, with public app client `5eg3eaf2m25t2eo8ole12nf788`. No AWS access keys
-or client secret are needed. Requests go directly to Cognito over verified HTTPS,
-on a background worker. Passwords and tokens are not saved to disk.
-Sessions expire after the access-token lifetime and require signing in again;
-automatic refresh and MFA enrollment are not implemented.
-**Forgot Password** on the sign-in form emails a reset code to the account's
-verified email. The player enters the code, then a new password twice; the
-passwords must match before Cognito updates the account, after which the player
-returns to **Sign In**. Because the app client keeps
-`prevent_user_existence_errors` enabled, Cognito does not reveal whether an email
-is registered, so unregistered emails also reach the code screen.
-**Log Out** on the main menu ends the session, deletes the stored tokens and
-returns to **Sign Up** / **Sign In** with empty forms.
-Unsupported account-setup challenges display an error rather than granting access.
-
-The pool and client are defined in [cognito.tf](infra/terraform/cognito.tf).
-**Deploy the Terraform change enabling `ALLOW_USER_PASSWORD_AUTH` before using
-sign-in**; existing SRP and refresh-token flows remain enabled. Passwords require
-12-256 characters, including uppercase, lowercase and a number.
-
-Windows uses WinHTTP and Android uses `HttpsURLConnection` with the platform
-certificate store. Linux and macOS builds require libcurl development files
-(e.g. `libcurl4-openssl-dev` on Ubuntu). CMake fetches the pinned nlohmann/json
-dependency. Unit tests use an injected transport, not live player accounts.
-
 ## Commit-time linting
 
 To block commits to `main` when lint checks fail, enable the repository's local

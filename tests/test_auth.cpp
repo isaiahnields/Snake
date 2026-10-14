@@ -10,26 +10,59 @@
 #include <filesystem>
 #include <fstream>
 #include <imgui.h>
-#include <nlohmann/json.hpp>
 #include <utility>
 #include <vector>
 
 namespace
 {
-using Json = nlohmann::json;
-const std::string TOKENS =
-    R"({"AuthenticationResult":{"AccessToken":"access","IdToken":"id","RefreshToken":"refresh","ExpiresIn":3600}})";
+CognitoResponse ok() { return {}; }
+
+CognitoResponse failed(const std::string &code)
+{
+    CognitoResponse response;
+    response.error = code;
+    return response;
+}
+
+CognitoResponse sign_up_result(bool confirmed)
+{
+    CognitoResponse response;
+    response.user_confirmed = confirmed;
+    return response;
+}
+
+CognitoResponse tokens_result(int expires_in = 3600)
+{
+    CognitoResponse response;
+    response.has_tokens = true;
+    response.access_token = "access";
+    response.id_token = "id";
+    response.refresh_token = "refresh";
+    response.expires_in = expires_in;
+    return response;
+}
+
+CognitoResponse mfa_result(const std::string &username)
+{
+    CognitoResponse response;
+    response.challenge_name = "SOFTWARE_TOKEN_MFA";
+    response.session = "challenge";
+    response.challenge_username = username;
+    return response;
+}
+
+const CognitoResponse TOKENS = tokens_result();
 
 struct MockCognito
 {
-    std::deque<CognitoHttpResponse> responses;
-    std::vector<std::pair<std::string, Json>> requests;
+    std::deque<CognitoResponse> responses;
+    std::vector<CognitoRequest> requests;
     std::shared_ptr<CognitoClient> client()
     {
         return std::make_shared<CognitoClient>(
-            [this](const std::string &operation, const std::string &body)
+            [this](const CognitoRequest &request)
             {
-                requests.emplace_back(operation, Json::parse(body));
+                requests.push_back(request);
                 if (responses.empty()) throw std::runtime_error("Unexpected Cognito request.");
                 auto response = responses.front();
                 responses.pop_front();
@@ -71,14 +104,8 @@ void press(ViewManager &manager, SDL_Keycode key)
 void test_client_requests()
 {
     MockCognito mock;
-    mock.responses = {
-        {200, R"({"UserConfirmed":false})"},
-        {200, "{}"},
-        {200, "{}"},
-        {200, TOKENS},
-        {200,
-         R"({"ChallengeName":"SOFTWARE_TOKEN_MFA","Session":"challenge","ChallengeParameters":{"USERNAME":"canonical-user"}})"},
-        {200, TOKENS}};
+    mock.responses = {sign_up_result(false), ok(), ok(), TOKENS, mfa_result("canonical-user"),
+                      TOKENS};
     auto client = mock.client();
     CHECK(client->sign_up("player@example.com", "Password1234").step ==
           AuthStep::ConfirmationRequired);
@@ -98,30 +125,24 @@ void test_client_requests()
                            challenge.challenge_session, "654321")
               .step == AuthStep::SignedIn);
     CHECK(mock.requests.size() == 6);
-    for (const auto &request : mock.requests)
-        CHECK(request.second.at("ClientId") == "5eg3eaf2m25t2eo8ole12nf788");
-    CHECK(mock.requests[0].first == "SignUp");
-    CHECK(mock.requests[0].second.at("Username") == "player@example.com");
-    CHECK(mock.requests[0].second.at("Password") == "Password1234");
-    CHECK(mock.requests[0].second.at("UserAttributes")[0].at("Name") == "email");
-    CHECK(mock.requests[0].second.at("UserAttributes")[0].at("Value") == "player@example.com");
-    CHECK(mock.requests[1].first == "ConfirmSignUp");
-    CHECK(mock.requests[1].second.at("ConfirmationCode") == "123456");
-    CHECK(mock.requests[2].first == "ResendConfirmationCode");
-    CHECK(mock.requests[3].first == "InitiateAuth");
-    CHECK(mock.requests[3].second.at("AuthFlow") == "USER_PASSWORD_AUTH");
-    CHECK(mock.requests[3].second.at("AuthParameters").at("PASSWORD") == "Password1234");
-    CHECK(mock.requests[5].first == "RespondToAuthChallenge");
-    CHECK(mock.requests[5].second.at("ChallengeResponses").at("USERNAME") == "canonical-user");
-    CHECK(mock.requests[5].second.at("Session") == "challenge");
-    CHECK(mock.requests[5].second.at("ChallengeResponses").at("SOFTWARE_TOKEN_MFA_CODE") ==
-          "654321");
+    CHECK(mock.requests[0].operation == CognitoOperation::SignUp);
+    CHECK(mock.requests[0].username == "player@example.com");
+    CHECK(mock.requests[0].password == "Password1234");
+    CHECK(mock.requests[1].operation == CognitoOperation::ConfirmSignUp);
+    CHECK(mock.requests[1].code == "123456");
+    CHECK(mock.requests[2].operation == CognitoOperation::ResendConfirmationCode);
+    CHECK(mock.requests[3].operation == CognitoOperation::InitiateAuth);
+    CHECK(mock.requests[3].password == "Password1234");
+    CHECK(mock.requests[5].operation == CognitoOperation::RespondToAuthChallenge);
+    CHECK(mock.requests[5].username == "canonical-user");
+    CHECK(mock.requests[5].session == "challenge");
+    CHECK(mock.requests[5].code == "654321");
 }
 
 void test_sign_up_and_gate()
 {
     MockCognito mock;
-    mock.responses = {{200, R"({"UserConfirmed":false})"}, {200, "{}"}, {200, "{}"}, {200, TOKENS}};
+    mock.responses = {sign_up_result(false), ok(), ok(), TOKENS};
     ViewManager manager(nullptr, mock.client());
     CHECK(manager.active_id() == ViewId::SignUpOrSignIn);
     manager.open_page(MenuPage::Play);
@@ -146,11 +167,11 @@ void test_sign_up_and_gate()
     CHECK(verify.busy());
     drain(manager, verify);
     CHECK(manager.active_id() == ViewId::SignIn);
-    CHECK(mock.requests[1].first == "ResendConfirmationCode");
-    CHECK(mock.requests[1].second.at("Username") == "player@example.com");
-    CHECK(mock.requests[2].first == "ConfirmSignUp");
-    CHECK(mock.requests[2].second.at("Username") == "player@example.com");
-    CHECK(mock.requests[2].second.at("ConfirmationCode") == "123456");
+    CHECK(mock.requests[1].operation == CognitoOperation::ResendConfirmationCode);
+    CHECK(mock.requests[1].username == "player@example.com");
+    CHECK(mock.requests[2].operation == CognitoOperation::ConfirmSignUp);
+    CHECK(mock.requests[2].username == "player@example.com");
+    CHECK(mock.requests[2].code == "123456");
     CHECK(!manager.session().signed_in());
     auto &sign_in = static_cast<SignInView &>(manager.active());
     CHECK(sign_in.notice() == "Email verified. Sign in to play.");
@@ -187,13 +208,13 @@ void test_validation()
     form.submit_code(manager, "123456");
     CHECK(!form.busy());
     CHECK(mock.requests.empty());
-    mock.responses = {{200, R"({"UserConfirmed":true})"}};
+    mock.responses = {sign_up_result(true)};
     form.submit(manager, "player@example.com", std::string(254, 'a') + "A1");
     drain(manager, form);
     CHECK(manager.active_id() == ViewId::SignIn);
     CHECK(!manager.session().signed_in());
     CHECK(mock.requests.size() == 1);
-    CHECK(mock.requests[0].second.at("Password").get<std::string>().size() == 256);
+    CHECK(mock.requests[0].password.size() == 256);
     manager.open(ViewId::SignUp);
     press(manager, SDLK_ESCAPE);
     CHECK(manager.active_id() == ViewId::SignUpOrSignIn);
@@ -207,13 +228,13 @@ void test_validation()
 void test_account_verification_errors_and_navigation()
 {
     MockCognito mock;
-    mock.responses = {{200, R"({"UserConfirmed":false})"},
-                      {400, R"({"__type":"CodeMismatchException"})"},
-                      {400, R"({"__type":"ExpiredCodeException"})"},
-                      {200, "{}"},
-                      {200, "{}"},
-                      {200, R"({"UserConfirmed":false})"},
-                      {200, "{}"}};
+    mock.responses = {sign_up_result(false),
+                      failed("CodeMismatchException"),
+                      failed("ExpiredCodeException"),
+                      ok(),
+                      ok(),
+                      sign_up_result(false),
+                      ok()};
     ViewManager manager(nullptr, mock.client());
     manager.open(ViewId::SignUp);
     auto &sign_up = static_cast<SignUpView &>(manager.active());
@@ -249,9 +270,9 @@ void test_account_verification_errors_and_navigation()
     drain(manager, forgot);
     verify.resend(manager);
     drain(manager, verify);
-    CHECK(mock.requests[3].first == "ForgotPassword");
-    CHECK(mock.requests[4].first == "ForgotPassword");
-    CHECK(mock.requests[4].second.at("Username") == "reset@example.com");
+    CHECK(mock.requests[3].operation == CognitoOperation::ForgotPassword);
+    CHECK(mock.requests[4].operation == CognitoOperation::ForgotPassword);
+    CHECK(mock.requests[4].username == "reset@example.com");
     verify.submit(manager, "123456");
     CHECK(manager.active_id() == ViewId::ResetPassword);
 
@@ -262,20 +283,19 @@ void test_account_verification_errors_and_navigation()
     verify.submit(manager, "123456");
     drain(manager, verify);
     CHECK(manager.active_id() == ViewId::SignIn);
-    CHECK(mock.requests[6].first == "ConfirmSignUp");
-    CHECK(mock.requests[6].second.at("Username") == "next@example.com");
+    CHECK(mock.requests[6].operation == CognitoOperation::ConfirmSignUp);
+    CHECK(mock.requests[6].username == "next@example.com");
     CHECK(!manager.session().signed_in());
 }
 
 void test_abandoned_verification_does_not_navigate()
 {
-    std::promise<CognitoHttpResponse> response;
+    std::promise<CognitoResponse> response;
     auto ready = response.get_future().share();
     auto client = std::make_shared<CognitoClient>(
-        [ready](const std::string &operation, const std::string &)
+        [ready](const CognitoRequest &request)
         {
-            if (operation == "SignUp")
-                return CognitoHttpResponse{200, R"({"UserConfirmed":false})"};
+            if (request.operation == CognitoOperation::SignUp) return sign_up_result(false);
             return ready.get();
         });
     ViewManager manager(nullptr, client);
@@ -288,7 +308,7 @@ void test_abandoned_verification_does_not_navigate()
     CHECK(verify.busy());
     manager.open(ViewId::SignUpOrSignIn);
     manager.open(ViewId::VerifyAccount);
-    response.set_value({200, "{}"});
+    response.set_value(ok());
     drain(manager, verify);
     CHECK(manager.active_id() == ViewId::VerifyAccount);
     CHECK(!manager.session().signed_in());
@@ -297,10 +317,8 @@ void test_abandoned_verification_does_not_navigate()
 void test_password_reset_requests()
 {
     MockCognito mock;
-    mock.responses = {{200, R"({"CodeDeliveryDetails":{"DeliveryMedium":"EMAIL"}})"},
-                      {200, "{}"},
-                      {400, R"({"__type":"UserNotFoundException"})"},
-                      {400, R"({"__type":"InvalidParameterException"})"}};
+    mock.responses = {ok(), ok(), failed("UserNotFoundException"),
+                      failed("InvalidParameterException")};
     auto client = mock.client();
     CHECK(client->forgot_password("player@example.com").step == AuthStep::CodeSent);
     CHECK(client->reset_password("player@example.com", "123456", "NewPassword1234").step ==
@@ -325,20 +343,19 @@ void test_password_reset_requests()
         CHECK(std::string(error.what()).find("not been verified") != std::string::npos);
     }
     CHECK(mock.requests.size() == 4);
-    CHECK(mock.requests[0].first == "ForgotPassword");
-    CHECK(mock.requests[0].second.at("Username") == "player@example.com");
-    CHECK(mock.requests[0].second.at("ClientId") == "5eg3eaf2m25t2eo8ole12nf788");
-    CHECK(mock.requests[1].first == "ConfirmForgotPassword");
-    CHECK(mock.requests[1].second.at("Username") == "player@example.com");
-    CHECK(mock.requests[1].second.at("ConfirmationCode") == "123456");
-    CHECK(mock.requests[1].second.at("Password") == "NewPassword1234");
+    CHECK(mock.requests[0].operation == CognitoOperation::ForgotPassword);
+    CHECK(mock.requests[0].username == "player@example.com");
+    CHECK(mock.requests[1].operation == CognitoOperation::ConfirmForgotPassword);
+    CHECK(mock.requests[1].username == "player@example.com");
+    CHECK(mock.requests[1].code == "123456");
+    CHECK(mock.requests[1].password == "NewPassword1234");
 }
 
 void test_forgot_password_flow()
 {
     MockCognito mock;
-    mock.responses = {{400, R"({"__type":"UserNotFoundException"})"}, {200, "{}"}, {200, "{}"},
-                      {400, R"({"__type":"CodeMismatchException"})"}, {200, "{}"}, {200, TOKENS}};
+    mock.responses = {failed("UserNotFoundException"), ok(), ok(),
+                      failed("CodeMismatchException"), ok(), TOKENS};
     ViewManager manager(nullptr, mock.client());
     manager.open(ViewId::SignIn);
     manager.open(ViewId::ForgotPassword);
@@ -389,10 +406,10 @@ void test_forgot_password_flow()
     CHECK(!manager.session().signed_in());
     auto &sign_in = static_cast<SignInView &>(manager.active());
     CHECK(sign_in.notice() == "Password updated. Sign in with your new password.");
-    CHECK(mock.requests[4].first == "ConfirmForgotPassword");
-    CHECK(mock.requests[4].second.at("Username") == "player@example.com");
-    CHECK(mock.requests[4].second.at("ConfirmationCode") == "123456");
-    CHECK(mock.requests[4].second.at("Password") == "NewPassword1234");
+    CHECK(mock.requests[4].operation == CognitoOperation::ConfirmForgotPassword);
+    CHECK(mock.requests[4].username == "player@example.com");
+    CHECK(mock.requests[4].code == "123456");
+    CHECK(mock.requests[4].password == "NewPassword1234");
 
     sign_in.submit(manager, "player@example.com", "NewPassword1234");
     drain(manager, sign_in);
@@ -420,7 +437,7 @@ void test_rendered_forms_accept_text()
     if (renderer != nullptr)
     {
         MockCognito mock;
-        mock.responses = {{200, R"({"UserConfirmed":false})"}, {200, "{}"}, {200, TOKENS}};
+        mock.responses = {sign_up_result(false), ok(), TOKENS};
         {
             ViewManager manager(renderer, mock.client());
             CHECK(manager.initialize_ui());
@@ -485,15 +502,13 @@ void test_rendered_forms_accept_text()
             CHECK(mock.requests.size() == 3);
             if (mock.requests.size() == 3)
             {
-                CHECK(mock.requests[0].first == "SignUp");
-                CHECK(mock.requests[0].second.at("Username") == "player@example.com");
-                CHECK(mock.requests[0].second.at("Password") == "Password1234");
-                CHECK(mock.requests[1].first == "ConfirmSignUp");
-                CHECK(mock.requests[1].second.at("ConfirmationCode") == "123456");
-                CHECK(mock.requests[2].second.at("AuthParameters").at("USERNAME") ==
-                      "player@example.com");
-                CHECK(mock.requests[2].second.at("AuthParameters").at("PASSWORD") ==
-                      "Password1234");
+                CHECK(mock.requests[0].operation == CognitoOperation::SignUp);
+                CHECK(mock.requests[0].username == "player@example.com");
+                CHECK(mock.requests[0].password == "Password1234");
+                CHECK(mock.requests[1].operation == CognitoOperation::ConfirmSignUp);
+                CHECK(mock.requests[1].code == "123456");
+                CHECK(mock.requests[2].username == "player@example.com");
+                CHECK(mock.requests[2].password == "Password1234");
             }
             CHECK(manager.session().signed_in());
         }
@@ -506,13 +521,8 @@ void test_rendered_forms_accept_text()
 void test_unconfirmed_and_mfa()
 {
     MockCognito mock;
-    mock.responses = {
-        {400, R"({"__type":"UserNotConfirmedException"})"},
-        {200, "{}"},
-        {200,
-         R"({"ChallengeName":"SOFTWARE_TOKEN_MFA","Session":"challenge","ChallengeParameters":{"USERNAME":"canonical"}})"},
-        {400, R"({"__type":"CodeMismatchException"})"},
-        {200, TOKENS}};
+    mock.responses = {failed("UserNotConfirmedException"), ok(), mfa_result("canonical"),
+                      failed("CodeMismatchException"), TOKENS};
     ViewManager manager(nullptr, mock.client());
     manager.open(ViewId::SignIn);
     auto &form = static_cast<SignInView &>(manager.active());
@@ -544,16 +554,14 @@ void test_unconfirmed_and_mfa()
 
 void test_errors_do_not_authenticate()
 {
-    for (
-        const auto &response : std::vector<CognitoHttpResponse>{
-            {400, R"({"__type":"com.amazonaws#NotAuthorizedException"})"},
-            {400, R"({"__type":"TooManyRequestsException"})"},
-            {200, "not json"},
-            {200, "{}"},
-            {200,
-             R"({"AuthenticationResult":{"AccessToken":"access","IdToken":"id","RefreshToken":"refresh","ExpiresIn":0}})"},
-            {200, R"({"AuthenticationResult":{"AccessToken":"access","ExpiresIn":3600}})"},
-            {200, R"({"ChallengeName":"NEW_PASSWORD_REQUIRED","Session":"challenge"})"}})
+    CognitoResponse unsupported_challenge;
+    unsupported_challenge.challenge_name = "NEW_PASSWORD_REQUIRED";
+    unsupported_challenge.session = "challenge";
+    CognitoResponse missing_tokens = tokens_result();
+    missing_tokens.id_token.clear();
+    for (const auto &response : std::vector<CognitoResponse>{
+             failed("NotAuthorizedException"), failed("TooManyRequestsException"), ok(),
+             tokens_result(0), missing_tokens, unsupported_challenge})
     {
         MockCognito mock;
         mock.responses = {response};
@@ -566,7 +574,7 @@ void test_errors_do_not_authenticate()
         CHECK(!manager.session().signed_in() && !form.notice().empty());
     }
     auto failing_client = std::make_shared<CognitoClient>(
-        [](const std::string &, const std::string &) -> CognitoHttpResponse
+        [](const CognitoRequest &) -> CognitoResponse
         { throw std::runtime_error("Network unavailable."); });
     ViewManager manager(nullptr, failing_client);
     manager.open(ViewId::SignIn);
@@ -579,9 +587,9 @@ void test_errors_do_not_authenticate()
 
 void test_abandoned_request_does_not_sign_in()
 {
-    std::promise<CognitoHttpResponse> response;
+    std::promise<CognitoResponse> response;
     auto ready = response.get_future().share();
-    auto client = std::make_shared<CognitoClient>([ready](const std::string &, const std::string &)
+    auto client = std::make_shared<CognitoClient>([ready](const CognitoRequest &)
                                                   { return ready.get(); });
     ViewManager manager(nullptr, client);
     manager.open(ViewId::SignIn);
@@ -590,7 +598,7 @@ void test_abandoned_request_does_not_sign_in()
     CHECK(form.busy());
     manager.open(ViewId::SignUpOrSignIn);
     manager.open(ViewId::SignIn);
-    response.set_value({200, TOKENS});
+    response.set_value(TOKENS);
     drain(manager, form);
     CHECK(manager.active_id() == ViewId::SignIn);
     CHECK(!manager.session().signed_in());
@@ -604,12 +612,12 @@ void test_tokens_persist_across_restarts()
     const std::string path = directory.string();
     auto store = std::make_shared<const PlayerTokenStore>(
         [path] { return SDL_OpenFileStorage(path.c_str()); });
-    const auto token_file = directory / "player_tokens.json";
+    const auto token_file = directory / "player_tokens.txt";
     MockCognito offline;
 
     {
         MockCognito mock;
-        mock.responses = {{200, TOKENS}};
+        mock.responses = {TOKENS};
         ViewManager manager(nullptr, mock.client(), store);
         CHECK(manager.active_id() == ViewId::SignUpOrSignIn);
         manager.open(ViewId::SignIn);
@@ -651,12 +659,24 @@ void test_tokens_persist_across_restarts()
         CHECK(!std::filesystem::exists(token_file));
     }
 
-    std::ofstream(token_file) << "{not json";
+    std::ofstream(token_file) << "not a token file";
     CHECK(!store->load());
     {
         ViewManager manager(nullptr, offline.client(), store);
         CHECK(!manager.session().signed_in());
     }
+
+    std::ofstream(token_file, std::ios::trunc)
+        << "email=a@b.c\naccess_token=x\nid_token=y\nrefresh_token=z\nexpires_in=12\n";
+    CHECK(!store->load());
+    CHECK(store->save({{"player@example.com", "access", "id", "refresh", 3600}, now + 1000}));
+    const auto reloaded = store->load();
+    CHECK(reloaded && reloaded->tokens.refresh_token == "refresh" &&
+          reloaded->tokens.expires_in == 3600 && reloaded->expires_at == now + 1000);
+    CHECK(!store->save({{"bad\nemail", "access", "id", "refresh", 3600}, now + 1000}));
+    std::ofstream(directory / "player_tokens.json") << "{}";
+    CHECK(store->clear());
+    CHECK(!std::filesystem::exists(directory / "player_tokens.json"));
 
     std::filesystem::remove_all(directory);
 }
@@ -669,12 +689,12 @@ void test_log_out_clears_storage()
     const std::string path = directory.string();
     auto store = std::make_shared<const PlayerTokenStore>(
         [path] { return SDL_OpenFileStorage(path.c_str()); });
-    const auto token_file = directory / "player_tokens.json";
+    const auto token_file = directory / "player_tokens.txt";
     MockCognito offline;
 
     {
         MockCognito mock;
-        mock.responses = {{200, TOKENS}};
+        mock.responses = {TOKENS};
         ViewManager manager(nullptr, mock.client(), store);
         manager.open(ViewId::SignIn);
         auto &form = static_cast<SignInView &>(manager.active());

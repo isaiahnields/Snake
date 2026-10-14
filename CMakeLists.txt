@@ -42,13 +42,24 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(imgui)
 
+set(LEGACY_BUILD ON CACHE BOOL "" FORCE)
+set(BUILD_ONLY cognito-idp CACHE STRING "" FORCE)
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+set(ENABLE_TESTING OFF CACHE BOOL "" FORCE)
+set(AUTORUN_UNIT_TESTS OFF CACHE BOOL "" FORCE)
+set(BUILD_BENCHMARKS OFF CACHE BOOL "" FORCE)
+set(AWS_SDK_WARNINGS_ARE_ERRORS OFF CACHE BOOL "" FORCE)
+if(MINGW)
+    set(USE_CPU_EXTENSIONS OFF CACHE BOOL "" FORCE)
+endif()
 FetchContent_Declare(
-    json
-    GIT_REPOSITORY https://github.com/nlohmann/json.git
-    GIT_TAG v3.12.0
-    GIT_SHALLOW TRUE
+    aws_sdk_cpp
+    GIT_REPOSITORY https://github.com/aws/aws-sdk-cpp.git
+    GIT_TAG        1.11.911
+    GIT_SHALLOW    TRUE
+    GIT_SUBMODULES_RECURSE TRUE
 )
-FetchContent_MakeAvailable(json)
+FetchContent_MakeAvailable(aws_sdk_cpp)
 
 find_package(Threads REQUIRED)
 if(NOT WIN32 AND NOT ANDROID)
@@ -75,6 +86,26 @@ if(SNAKE_ENABLE_CLANG_TIDY)
     endif()
     set(CMAKE_CXX_CLANG_TIDY "${CLANG_TIDY_EXECUTABLE}")
 endif()
+
+function(snake_copy_mingw_runtime target)
+    if(MINGW AND WIN32)
+        get_filename_component(compiler_directory "${CMAKE_CXX_COMPILER}" DIRECTORY)
+        file(GLOB runtime_libraries CONFIGURE_DEPENDS
+            "${compiler_directory}/libstdc++-6.dll"
+            "${compiler_directory}/libgcc_s_*-1.dll"
+            "${compiler_directory}/libwinpthread-1.dll"
+        )
+        if(NOT EXISTS "${compiler_directory}/libstdc++-6.dll")
+            message(FATAL_ERROR "Cannot find the MinGW C++ runtime beside ${CMAKE_CXX_COMPILER}")
+        endif()
+        add_custom_command(TARGET ${target} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                ${runtime_libraries} "$<TARGET_FILE_DIR:${target}>"
+            COMMENT "Copying compiler-matched MinGW runtime DLLs for ${target}"
+            VERBATIM
+        )
+    endif()
+endfunction()
 
 add_subdirectory(src)
 

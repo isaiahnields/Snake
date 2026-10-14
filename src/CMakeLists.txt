@@ -1,6 +1,6 @@
 set(SNAKE_CORE_SOURCES
     cognito_client.cpp
-    cognito_http.cpp
+    cognito_sdk.cpp
     gamepad_input.cpp
     snake_game.cpp
     renderer.cpp
@@ -33,7 +33,11 @@ set(SNAKE_CORE_SOURCES
 add_library(snake_core ${SNAKE_CORE_SOURCES})
 target_link_libraries(snake_core PUBLIC SDL3::SDL3 snake_imgui)
 target_compile_features(snake_core PUBLIC cxx_std_17)
-target_link_libraries(snake_core PRIVATE nlohmann_json::nlohmann_json Threads::Threads)
+target_link_libraries(snake_core PRIVATE
+    Threads::Threads
+    aws-cpp-sdk-core
+    aws-cpp-sdk-cognito-idp
+)
 if(WIN32)
     target_link_libraries(snake_core PRIVATE winhttp)
 elseif(NOT ANDROID)
@@ -46,4 +50,5 @@ if(ANDROID)
 else()
     add_executable(snake WIN32 main.cpp)
     target_link_libraries(snake PRIVATE snake_core)
+    snake_copy_mingw_runtime(snake)
 endif()

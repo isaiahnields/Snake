@@ -19,7 +19,12 @@ target_link_libraries(test_ready_file PRIVATE snake_core)
 add_test(NAME ready_file COMMAND test_ready_file)
 
 add_executable(test_auth test_auth.cpp)
-target_link_libraries(test_auth PRIVATE snake_core nlohmann_json::nlohmann_json)
+target_link_libraries(test_auth PRIVATE snake_core)
 add_test(NAME auth COMMAND test_auth)
+
+foreach(target IN ITEMS test_snake_game test_renderer test_view_manager
+                        test_gamepad_input test_ready_file test_auth)
+    snake_copy_mingw_runtime(${target})
+endforeach()
 
 add_custom_target(all_tests DEPENDS test_snake_game test_renderer test_view_manager test_gamepad_input test_ready_file test_auth)

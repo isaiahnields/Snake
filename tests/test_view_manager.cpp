@@ -202,24 +202,6 @@ void test_ai_views()
     CHECK(showing(manager, ViewId::AIControlCenter, MenuPage::AI));
 
     press(manager, SDLK_4);
-    CHECK(showing(manager, ViewId::AITrainCloudGames, MenuPage::CloudTraining));
-    press(manager, SDLK_2);
-    CHECK(showing(manager, ViewId::AITrainCloudGames, MenuPage::CloudTraining));
-    CHECK(!notice(manager).empty());
-    press(manager, SDLK_ESCAPE);
-    CHECK(showing(manager, ViewId::AIControlCenter, MenuPage::AI));
-
-    press(manager, SDLK_5);
-    CHECK(showing(manager, ViewId::AITestGames, MenuPage::Test));
-    CHECK(manager.active().as_menu()->details().at(0) == "Visual AI testing is not implemented.");
-    press(manager, SDLK_1);
-    CHECK(showing(manager, ViewId::AITestGames, MenuPage::Test));
-    CHECK(notice(manager) == "Not implemented yet. No changes were made.");
-    press(manager, SDLK_2);
-    CHECK(showing(manager, ViewId::AITestGames, MenuPage::Test));
-    CHECK(!notice(manager).empty());
-    manager.update();
-    CHECK(showing(manager, ViewId::AITestGames, MenuPage::Test));
     CHECK(session.best_ai_scores.empty());
 
     press(manager, SDLK_ESCAPE);

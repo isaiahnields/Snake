@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gamepad_input.h"
 #include "player_token_store.h"
 #include "session_state.h"
 #include "view.h"
@@ -59,7 +60,10 @@ class ViewManager
     bool renderer_initialized_ = false;
     bool touch_active_ = false;
     SDL_FingerID touch_finger_ = 0;
+    GamepadInput gamepad_input_;
 
     void process_ui_event(const SDL_Event &event);
+    void sync_ui_gamepads();
+    bool custom_controller_navigation();
     void restore_session();
 };

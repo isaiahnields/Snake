@@ -24,6 +24,8 @@ struct SessionState
     }
     int training_episodes = 1000;
     bool visual_training = true;
+    // Game audio preference toggled from the in-game HUD.
+    bool muted = false;
     std::vector<int> best_manual_scores;
     std::vector<int> best_ai_scores;
 };

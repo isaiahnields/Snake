@@ -204,23 +204,23 @@ void test_menus_and_game()
     press(manager, id, SDL_GAMEPAD_BUTTON_SOUTH);
     auto &manual = static_cast<UserGameView &>(manager.active());
     CHECK(manual.playing());
-    CHECK(manual.game().dir == RIGHT);
+    CHECK(manual.game().board.snake().dir == RIGHT);
     press(manager, id, SDL_GAMEPAD_BUTTON_DPAD_LEFT);
-    CHECK(manual.game().dir == RIGHT);
+    CHECK(manual.game().board.snake().dir == RIGHT);
     press(manager, id, SDL_GAMEPAD_BUTTON_DPAD_UP);
-    CHECK(manual.game().dir == UP);
+    CHECK(manual.game().board.snake().dir == UP);
     press(manager, id, SDL_GAMEPAD_BUTTON_DPAD_LEFT);
-    CHECK(manual.game().dir == LEFT);
+    CHECK(manual.game().board.snake().dir == LEFT);
     press(manager, id, SDL_GAMEPAD_BUTTON_DPAD_DOWN);
-    CHECK(manual.game().dir == DOWN);
+    CHECK(manual.game().board.snake().dir == DOWN);
     press(manager, id, SDL_GAMEPAD_BUTTON_DPAD_RIGHT);
-    CHECK(manual.game().dir == RIGHT);
+    CHECK(manual.game().board.snake().dir == RIGHT);
 
     move_stick(manager, id, SDL_GAMEPAD_AXIS_LEFTY, -32768);
-    CHECK(manual.game().dir == UP);
+    CHECK(manual.game().board.snake().dir == UP);
     move_stick(manager, id, SDL_GAMEPAD_AXIS_LEFTY, 0);
     move_stick(manager, id, SDL_GAMEPAD_AXIS_LEFTX, -32768);
-    CHECK(manual.game().dir == LEFT);
+    CHECK(manual.game().board.snake().dir == LEFT);
     press(manager, id, SDL_GAMEPAD_BUTTON_START);
     CHECK(!manual.playing());
     CHECK(manual.notice == "Manual game stopped.");
@@ -287,18 +287,18 @@ void test_rendered_controller_game(SDL_Renderer *renderer)
     CHECK(manual.playing());
     CHECK((ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_NavEnableGamepad) == 0);
 
-    const Point start = manual.game().snake.front();
+    const Point start = manual.game().board.snake().head();
     ui_press(manager, first, SDL_GAMEPAD_BUTTON_DPAD_UP);
     manual.update(manager, 0);
     manual.update(manager, UserGameView::MOVE_INTERVAL_MS);
-    CHECK((manual.game().snake.front() == Point{start.x, start.y - 1}));
+    CHECK((manual.game().board.snake().head() == Point{start.x, start.y - 1}));
 
     const SDL_JoystickID second = attach_gamepad();
     render_frames(manager);
     move_stick(manager, second, SDL_GAMEPAD_AXIS_LEFTX, -32768);
     render_frames(manager);
     manual.update(manager, 2 * UserGameView::MOVE_INTERVAL_MS);
-    CHECK((manual.game().snake.front() == Point{start.x - 1, start.y - 1}));
+    CHECK((manual.game().board.snake().head() == Point{start.x - 1, start.y - 1}));
 
     CHECK(SDL_DetachVirtualJoystick(first));
     render_frames(manager);

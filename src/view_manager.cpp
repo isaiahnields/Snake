@@ -375,7 +375,7 @@ bool ViewManager::render()
         request_quit();
         return false;
     }
-    // UI uses window coordinates; only the game board uses SDL's letterboxed logical size.
+    // UI uses window coordinates regardless of any logical presentation set on the renderer.
     if (!SDL_SetRenderLogicalPresentation(renderer_, 0, 0, SDL_LOGICAL_PRESENTATION_DISABLED))
     {
         std::cerr << "UI render presentation error: " << SDL_GetError() << std::endl;

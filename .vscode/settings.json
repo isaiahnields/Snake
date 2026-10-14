@@ -9,14 +9,12 @@
     "cmake.ctest.neverDebugTestsWithLaunchConfiguration": false,
     "files.autoSave": "afterDelay",
     "files.exclude": {
-        "**/build": true,
         "**/out": true,
         "**/android/app/.cxx": true,
         "**/android/.gradle": true,
         "**/android/.idea": true
     },
     "search.exclude": {
-        "**/build": true,
         "**/out": true,
         "**/android/app/.cxx": true,
         "**/android/.gradle": true,
@@ -36,5 +34,12 @@
     ],
     "cmake.ctest.allowParallelJobs": false,
     "cmake.ctest.parallelJobs": 1,
-    "window.title": "${rootName} — ${activeEditorShort}"
+    "window.title": "${rootName} — ${activeEditorShort}",
+    // 1. Enable clang-tidy and make it run automatically on open and save
+    "C_Cpp.codeAnalysis.clangTidy.enabled": true,
+    // 2. Direct clang-tidy to look for your CMake compile_commands.json
+    "C_Cpp.codeAnalysis.clangTidy.useBuildPath": true,
+    // 3. Optional: Explicitly point to the build directory if it isn't default
+    "C_Cpp.default.compileCommands": "${workspaceFolder}/build/compile_commands.json",
+    "editor.formatOnPaste": true
 }

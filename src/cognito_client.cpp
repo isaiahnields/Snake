@@ -90,6 +90,26 @@ AuthResult authentication(const Json &json, const std::string &email)
                         string_field(*auth, "RefreshToken"), expires->get<int>()};
     return {AuthStep::SignedIn, std::move(tokens), {}, {}};
 }
+
+// Password recovery errors need account-specific wording rather than the sign-in defaults.
+Json recovery_request(const CognitoTransport &transport, const char *operation, Json body)
+{
+    try
+    {
+        return request(transport, operation, std::move(body));
+    }
+    catch (const CognitoError &error)
+    {
+        if (error.code == "UserNotFoundException")
+            throw CognitoError(error.code, "No account is registered with this email.");
+        if (error.code == "InvalidParameterException" && std::string(operation) == "ForgotPassword")
+            throw CognitoError(error.code, "This email has not been verified, so the password "
+                                           "cannot be reset. Verify your email first.");
+        if (error.code == "NotAuthorizedException")
+            throw CognitoError(error.code, "The password for this account cannot be reset.");
+        throw;
+    }
+}
 } // namespace
 
 CognitoError::CognitoError(const std::string &error_code, const std::string &message)
@@ -144,4 +164,18 @@ AuthResult CognitoClient::answer_mfa(const std::string &email, const std::string
                                    {"ChallengeResponses",
                                     {{"USERNAME", username}, {"SOFTWARE_TOKEN_MFA_CODE", code}}}}),
                           email);
+}
+
+AuthResult CognitoClient::forgot_password(const std::string &email) const
+{
+    recovery_request(transport_, "ForgotPassword", {{"Username", email}});
+    return {AuthStep::CodeSent, {}, {}, {}};
+}
+
+AuthResult CognitoClient::reset_password(const std::string &email, const std::string &code,
+                                         const std::string &password) const
+{
+    recovery_request(transport_, "ConfirmForgotPassword",
+                     {{"Username", email}, {"ConfirmationCode", code}, {"Password", password}});
+    return {AuthStep::PasswordReset, {}, {}, {}};
 }

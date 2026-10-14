@@ -1,7 +1,10 @@
 #include "test_helpers.h"
 
+#include "../src/views/forgot_password_view.h"
+#include "../src/views/reset_password_view.h"
 #include "../src/views/sign_in_view.h"
 #include "../src/views/sign_up_view.h"
+#include "../src/views/verify_account_view.h"
 
 #include <deque>
 #include <filesystem>
@@ -36,6 +39,17 @@ struct MockCognito
 };
 
 void drain(ViewManager &manager, AuthFormView &form)
+{
+    const Uint64 deadline = SDL_GetTicks() + 3000;
+    while (form.busy() && SDL_GetTicks() < deadline)
+    {
+        manager.update();
+        SDL_Delay(1);
+    }
+    CHECK(!form.busy());
+}
+
+void drain(ViewManager &manager, PasswordResetView &form)
 {
     const Uint64 deadline = SDL_GetTicks() + 3000;
     while (form.busy() && SDL_GetTicks() < deadline)
@@ -181,6 +195,121 @@ void test_validation()
     CHECK(manager.quit_requested());
 }
 
+void test_password_reset_requests()
+{
+    MockCognito mock;
+    mock.responses = {{200, R"({"CodeDeliveryDetails":{"DeliveryMedium":"EMAIL"}})"},
+                      {200, "{}"},
+                      {400, R"({"__type":"UserNotFoundException"})"},
+                      {400, R"({"__type":"InvalidParameterException"})"}};
+    auto client = mock.client();
+    CHECK(client->forgot_password("player@example.com").step == AuthStep::CodeSent);
+    CHECK(client->reset_password("player@example.com", "123456", "NewPassword1234").step ==
+          AuthStep::PasswordReset);
+    try
+    {
+        client->forgot_password("nobody@example.com");
+        CHECK(false);
+    }
+    catch (const CognitoError &error)
+    {
+        CHECK(error.code == "UserNotFoundException");
+        CHECK(std::string(error.what()) == "No account is registered with this email.");
+    }
+    try
+    {
+        client->forgot_password("unverified@example.com");
+        CHECK(false);
+    }
+    catch (const CognitoError &error)
+    {
+        CHECK(std::string(error.what()).find("not been verified") != std::string::npos);
+    }
+    CHECK(mock.requests.size() == 4);
+    CHECK(mock.requests[0].first == "ForgotPassword");
+    CHECK(mock.requests[0].second.at("Username") == "player@example.com");
+    CHECK(mock.requests[0].second.at("ClientId") == "5eg3eaf2m25t2eo8ole12nf788");
+    CHECK(mock.requests[1].first == "ConfirmForgotPassword");
+    CHECK(mock.requests[1].second.at("Username") == "player@example.com");
+    CHECK(mock.requests[1].second.at("ConfirmationCode") == "123456");
+    CHECK(mock.requests[1].second.at("Password") == "NewPassword1234");
+}
+
+void test_forgot_password_flow()
+{
+    MockCognito mock;
+    mock.responses = {{400, R"({"__type":"UserNotFoundException"})"}, {200, "{}"}, {200, "{}"},
+                      {400, R"({"__type":"CodeMismatchException"})"}, {200, "{}"}, {200, TOKENS}};
+    ViewManager manager(nullptr, mock.client());
+    manager.open(ViewId::SignIn);
+    manager.open(ViewId::ForgotPassword);
+    CHECK(manager.active_id() == ViewId::ForgotPassword);
+    auto &forgot = static_cast<ForgotPasswordView &>(manager.active());
+    forgot.submit(manager, "not-an-email");
+    CHECK(!forgot.busy() && !forgot.notice().empty());
+    CHECK(mock.requests.empty());
+
+    forgot.submit(manager, "nobody@example.com");
+    drain(manager, forgot);
+    CHECK(manager.active_id() == ViewId::ForgotPassword);
+    CHECK(forgot.notice() == "No account is registered with this email.");
+
+    forgot.submit(manager, "player@example.com");
+    drain(manager, forgot);
+    CHECK(manager.active_id() == ViewId::VerifyAccount);
+    auto &verify = static_cast<VerifyAccountView &>(manager.active());
+    CHECK(!verify.notice().empty());
+    verify.submit(manager, "");
+    verify.submit(manager, "12a456");
+    CHECK(manager.active_id() == ViewId::VerifyAccount && !verify.notice().empty());
+    verify.resend(manager);
+    drain(manager, verify);
+    CHECK(verify.notice() == "A new code was sent to your email.");
+    verify.submit(manager, "111111");
+    CHECK(manager.active_id() == ViewId::ResetPassword);
+
+    auto &reset = static_cast<ResetPasswordView &>(manager.active());
+    reset.submit(manager, "NewPassword1234", "NewPassword12345");
+    CHECK(!reset.busy() && reset.notice() == "Passwords do not match.");
+    reset.submit(manager, "short", "short");
+    CHECK(!reset.busy() && !reset.notice().empty());
+    CHECK(mock.requests.size() == 3);
+    reset.submit(manager, "NewPassword1234", "NewPassword1234");
+    drain(manager, reset);
+    CHECK(manager.active_id() == ViewId::VerifyAccount);
+    CHECK(verify.notice() == "Incorrect verification code. Please try again.");
+
+    verify.submit(manager, "123456");
+    CHECK(manager.active_id() == ViewId::ResetPassword);
+    press(manager, SDLK_ESCAPE);
+    CHECK(manager.active_id() == ViewId::VerifyAccount);
+    verify.submit(manager, "123456");
+    reset.submit(manager, "NewPassword1234", "NewPassword1234");
+    drain(manager, reset);
+    CHECK(manager.active_id() == ViewId::SignIn);
+    CHECK(!manager.session().signed_in());
+    auto &sign_in = static_cast<SignInView &>(manager.active());
+    CHECK(sign_in.notice() == "Password updated. Sign in with your new password.");
+    CHECK(mock.requests[4].first == "ConfirmForgotPassword");
+    CHECK(mock.requests[4].second.at("Username") == "player@example.com");
+    CHECK(mock.requests[4].second.at("ConfirmationCode") == "123456");
+    CHECK(mock.requests[4].second.at("Password") == "NewPassword1234");
+
+    sign_in.submit(manager, "player@example.com", "NewPassword1234");
+    drain(manager, sign_in);
+    CHECK(manager.session().signed_in());
+
+    manager.log_out();
+    manager.open(ViewId::ResetPassword);
+    auto &cleared = static_cast<ResetPasswordView &>(manager.active());
+    cleared.submit(manager, "NewPassword1234", "NewPassword1234");
+    CHECK(!cleared.busy() && cleared.notice() == "Verify your password reset code first.");
+    press(manager, SDLK_ESCAPE);
+    press(manager, SDLK_ESCAPE);
+    press(manager, SDLK_ESCAPE);
+    CHECK(manager.active_id() == ViewId::SignIn);
+}
+
 void test_rendered_forms_accept_text()
 {
     CHECK(SDL_SetHint(SDL_HINT_VIDEO_DRIVER, "dummy"));
@@ -200,6 +329,13 @@ void test_rendered_forms_accept_text()
             CHECK(ImGui::GetDrawData()->TotalVtxCount > 0);
             manager.open(ViewId::SignUp);
             CHECK(manager.render());
+            for (const auto id :
+                 {ViewId::ForgotPassword, ViewId::VerifyAccount, ViewId::ResetPassword})
+            {
+                manager.open(id);
+                CHECK(manager.render());
+                CHECK(manager.active_id() == id);
+            }
             manager.open(ViewId::SignIn);
             CHECK(manager.render());
             const auto key = [&](SDL_Keycode value)
@@ -461,6 +597,8 @@ int main()
     test_abandoned_request_does_not_sign_in();
     test_tokens_persist_across_restarts();
     test_log_out_clears_storage();
+    test_password_reset_requests();
+    test_forgot_password_flow();
     test_rendered_forms_accept_text();
     return TEST_RESULT();
 }

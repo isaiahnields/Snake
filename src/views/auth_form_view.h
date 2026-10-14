@@ -15,6 +15,12 @@ enum class AuthFormStage
     Mfa
 };
 
+bool valid_email(const std::string &email);
+// Mirrors the Cognito pool policy: 12-256 characters with uppercase, lowercase and a number.
+bool valid_password(const std::string &password);
+// Accepts 1-128 digit email verification codes.
+bool valid_code(const std::string &code);
+
 // Shared form mechanics for email/password, email confirmation and authenticator challenges.
 class AuthFormView : public View
 {
@@ -44,7 +50,8 @@ class AuthFormView : public View
         Submit,
         Resend,
         Back,
-        Switch
+        Switch,
+        ForgotPassword
     };
     const bool sign_up_;
     std::shared_ptr<CognitoClient> client_;

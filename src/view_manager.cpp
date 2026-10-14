@@ -1,16 +1,19 @@
 #include "view_manager.h"
 
 #include "views/ai_control_center_view.h"
+#include "views/forgot_password_view.h"
 #include "views/hall_of_fame_view.h"
 #include "views/main_menu_view.h"
 #include "views/manual_game_view.h"
 #include "views/replay_vault_menu.h"
+#include "views/reset_password_view.h"
 #include "views/save_and_exit_view.h"
 #include "views/settings_view.h"
 #include "views/sign_in_view.h"
 #include "views/sign_up_or_sign_in_view.h"
 #include "views/sign_up_view.h"
 #include "views/train_cloud_ai_view.h"
+#include "views/verify_account_view.h"
 
 #include <imgui.h>
 #include <imgui_impl_sdl3.h>
@@ -32,6 +35,10 @@ ViewManager::ViewManager(SDL_Renderer *renderer, std::shared_ptr<CognitoClient> 
     views_[index_of(ViewId::SignUpOrSignIn)] = std::make_unique<SignUpOrSignInView>();
     views_[index_of(ViewId::SignUp)] = std::make_unique<SignUpView>(client);
     views_[index_of(ViewId::SignIn)] = std::make_unique<SignInView>(client);
+    const auto reset = std::make_shared<PasswordResetState>();
+    views_[index_of(ViewId::ForgotPassword)] = std::make_unique<ForgotPasswordView>(client, reset);
+    views_[index_of(ViewId::VerifyAccount)] = std::make_unique<VerifyAccountView>(client, reset);
+    views_[index_of(ViewId::ResetPassword)] = std::make_unique<ResetPasswordView>(client, reset);
     views_[index_of(ViewId::MainMenu)] = std::make_unique<MainMenuView>();
     views_[index_of(ViewId::ManualGame)] = std::make_unique<ManualGameView>(session_);
     views_[index_of(ViewId::AIControlCenter)] = std::make_unique<AIControlCenterView>(session_);
@@ -95,6 +102,8 @@ void ViewManager::log_out()
     session_ = SessionState{};
     static_cast<AuthFormView &>(view(ViewId::SignIn)).clear_fields();
     static_cast<AuthFormView &>(view(ViewId::SignUp)).clear_fields();
+    for (const auto id : {ViewId::ForgotPassword, ViewId::VerifyAccount, ViewId::ResetPassword})
+        static_cast<PasswordResetView &>(view(id)).clear_fields();
     open(ViewId::SignUpOrSignIn);
 }
 
@@ -152,7 +161,8 @@ bool ViewManager::initialize_ui()
 void ViewManager::open(ViewId id)
 {
     if (id != ViewId::SignUpOrSignIn && id != ViewId::SignUp && id != ViewId::SignIn &&
-        !session_.signed_in())
+        id != ViewId::ForgotPassword && id != ViewId::VerifyAccount &&
+        id != ViewId::ResetPassword && !session_.signed_in())
         id = ViewId::SignUpOrSignIn;
     active().on_leave();
     active_ = id;

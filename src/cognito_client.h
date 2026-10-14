@@ -30,7 +30,8 @@ enum class AuthStep
     AccountConfirmed,
     CodeSent,
     MfaRequired,
-    SignedIn
+    SignedIn,
+    PasswordReset
 };
 
 struct AuthResult
@@ -59,6 +60,10 @@ class CognitoClient
     AuthResult sign_in(const std::string &email, const std::string &password) const;
     AuthResult answer_mfa(const std::string &email, const std::string &username,
                           const std::string &session, const std::string &code) const;
+    // Emails a password reset code to a registered account with a verified email.
+    AuthResult forgot_password(const std::string &email) const;
+    AuthResult reset_password(const std::string &email, const std::string &code,
+                              const std::string &password) const;
 
   private:
     CognitoTransport transport_;

@@ -24,6 +24,18 @@ void press(ViewManager &manager, SDL_Keycode key)
     manager.handle_event(key_event(key));
 }
 
+void touch(ViewManager &manager, SDL_EventType type, float x, float y, SDL_FingerID finger = 1,
+           SDL_TouchID device = 1)
+{
+    SDL_Event event{};
+    event.type = type;
+    event.tfinger.touchID = device;
+    event.tfinger.fingerID = finger;
+    event.tfinger.x = x;
+    event.tfinger.y = y;
+    manager.handle_event(event);
+}
+
 void click(ViewManager &manager, float x, float y, Uint8 button = SDL_BUTTON_LEFT)
 {
     SDL_Event event{};

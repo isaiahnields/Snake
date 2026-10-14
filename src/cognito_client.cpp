@@ -93,8 +93,7 @@ CognitoClient::CognitoClient(CognitoTransport transport) : transport_(std::move(
 
 AuthResult CognitoClient::sign_up(const std::string &email, const std::string &password) const
 {
-    const auto response =
-        request(transport_, {CognitoOperation::SignUp, email, password, {}, {}});
+    const auto response = request(transport_, {CognitoOperation::SignUp, email, password, {}, {}});
     if (!response.user_confirmed)
         throw std::runtime_error("Cognito did not return account confirmation status.");
     return {*response.user_confirmed ? AuthStep::AccountConfirmed : AuthStep::ConfirmationRequired,
@@ -125,7 +124,8 @@ AuthResult CognitoClient::answer_mfa(const std::string &email, const std::string
                                      const std::string &session, const std::string &code) const
 {
     return authentication(
-        request(transport_, {CognitoOperation::RespondToAuthChallenge, username, {}, code, session}),
+        request(transport_,
+                {CognitoOperation::RespondToAuthChallenge, username, {}, code, session}),
         email);
 }
 

@@ -72,6 +72,46 @@ static void touch(ViewManager &manager, Uint32 type, SDL_FingerID finger, float 
     manager.render();
 }
 
+static void test_account_selection(SDL_Renderer *renderer, SDL_Surface *surface)
+{
+    ViewManager manager(renderer);
+    CHECK(manager.initialize_ui());
+    manager.render();
+    int sign_up_y = -1;
+    int sign_in_y = -1;
+    const int x = static_cast<int>(MENU_LEFT) + 2;
+    for (int y = 0; y < surface->h; ++y)
+    {
+        if (sign_up_y < 0 && pixel_is(surface, x, y, 50, 120, 85)) sign_up_y = y + 20;
+        if (sign_in_y < 0 && pixel_is(surface, x, y, 45, 45, 45)) sign_in_y = y + 20;
+    }
+    CHECK(sign_up_y >= 0 && sign_in_y > sign_up_y);
+    if (sign_up_y < 0 || sign_in_y < 0) return;
+    CHECK(pixel_is(surface, x, sign_up_y, 50, 120, 85));
+    CHECK(pixel_is(surface, x, sign_in_y, 45, 45, 45));
+    press(manager, SDLK_DOWN);
+    manager.render();
+    CHECK(pixel_is(surface, x, sign_up_y, 45, 45, 45));
+    CHECK(pixel_is(surface, x, sign_in_y, 50, 120, 85));
+    press(manager, SDLK_RETURN);
+    CHECK(manager.active_id() == ViewId::SignIn);
+    manager.open(ViewId::SignUpOrSignIn);
+    press(manager, SDLK_UP);
+    manager.render();
+    CHECK(pixel_is(surface, x, sign_up_y, 50, 120, 85));
+    CHECK(pixel_is(surface, x, sign_in_y, 45, 45, 45));
+    press(manager, SDLK_SPACE);
+    CHECK(manager.active_id() == ViewId::SignUp);
+    manager.open(ViewId::SignUpOrSignIn);
+    manager.render();
+    click(manager, MENU_LEFT + 20, static_cast<float>(sign_in_y));
+    CHECK(manager.active_id() == ViewId::SignIn);
+    manager.open(ViewId::SignUpOrSignIn);
+    manager.render();
+    click(manager, MENU_LEFT + 20, static_cast<float>(sign_up_y));
+    CHECK(manager.active_id() == ViewId::SignUp);
+}
+
 static void test_ui_and_board(SDL_Renderer *renderer, SDL_Surface *surface)
 {
     ViewManager manager(renderer);
@@ -273,6 +313,7 @@ int main()
         SDL_DestroySurface(surface);
         return 1;
     }
+    test_account_selection(renderer, surface);
     test_ui_and_board(renderer, surface);
     SDL_DestroyRenderer(renderer);
     SDL_DestroySurface(surface);

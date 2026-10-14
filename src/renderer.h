@@ -14,6 +14,7 @@ constexpr float MENU_ROW_WIDTH = WINDOW_WIDTH - 2 * MENU_LEFT;
 
 // UI helpers require an active ImGui frame. The manager applies menu clicks after rendering.
 void begin_form_screen(const char *title);
+bool draw_menu_button(const std::string &text, bool selected, float height, bool available = true);
 int draw_menu(SDL_Renderer *renderer, const MenuView &menu);
 void draw_game(SDL_Renderer *renderer, const SnakeGame &game);
 void draw_status(SDL_Renderer *renderer, const std::string &text);

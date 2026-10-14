@@ -1,4 +1,5 @@
 #include "cognito_client.h"
+#include "cognito_sdk.h"
 
 #include <utility>
 

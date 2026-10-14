@@ -1,5 +1,7 @@
 #pragma once
 
+#include "cognito_sdk.h"
+
 #include <functional>
 #include <optional>
 #include <stdexcept>
@@ -45,8 +47,6 @@ struct CognitoResponse
 };
 
 using CognitoTransport = std::function<CognitoResponse(const CognitoRequest &)>;
-
-CognitoResponse cognito_sdk_post(const CognitoRequest &request);
 
 struct PlayerTokens
 {

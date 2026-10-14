@@ -22,9 +22,19 @@ add_executable(test_auth test_auth.cpp)
 target_link_libraries(test_auth PRIVATE snake_core)
 add_test(NAME auth COMMAND test_auth)
 
+add_executable(test_cognito_client test_cognito_client.cpp)
+target_link_libraries(test_cognito_client PRIVATE snake_core)
+add_test(NAME cognito_client COMMAND test_cognito_client)
+
+add_executable(test_cognito_sdk test_cognito_sdk.cpp)
+target_link_libraries(test_cognito_sdk PRIVATE snake_core)
+add_test(NAME cognito_sdk COMMAND test_cognito_sdk)
+
 foreach(target IN ITEMS test_snake_game test_renderer test_view_manager
-                        test_gamepad_input test_ready_file test_auth)
+                        test_gamepad_input test_ready_file test_auth
+                        test_cognito_client test_cognito_sdk)
     snake_copy_mingw_runtime(${target})
 endforeach()
 
-add_custom_target(all_tests DEPENDS test_snake_game test_renderer test_view_manager test_gamepad_input test_ready_file test_auth)
+add_custom_target(all_tests DEPENDS test_snake_game test_renderer test_view_manager
+    test_gamepad_input test_ready_file test_auth test_cognito_client test_cognito_sdk)

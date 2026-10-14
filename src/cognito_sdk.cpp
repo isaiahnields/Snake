@@ -1,3 +1,4 @@
+#include "cognito_sdk.h"
 #include "cognito_client.h"
 
 #include <aws/cognito-idp/CognitoIdentityProviderClient.h>
@@ -74,7 +75,8 @@ std::string standard_string(const Aws::String &value)
 template <typename Outcome> CognitoResponse failure(const Outcome &outcome)
 {
     CognitoResponse response;
-    response.error = standard_string(outcome.GetError().GetExceptionName());
+    response.error = standard_string(
+        outcome.GetError().GetExceptionName());
     if (response.error.empty()) response.error = "UnknownError";
     return response;
 }
@@ -117,6 +119,20 @@ template <typename Request> Request make_request()
 
 CognitoResponse cognito_sdk_post(const CognitoRequest &input)
 {
+    switch (input.operation)
+    {
+    case CognitoOperation::SignUp:
+    case CognitoOperation::ConfirmSignUp:
+    case CognitoOperation::ResendConfirmationCode:
+    case CognitoOperation::InitiateAuth:
+    case CognitoOperation::RespondToAuthChallenge:
+    case CognitoOperation::ForgotPassword:
+    case CognitoOperation::ConfirmForgotPassword:
+        break;
+    default:
+        throw std::invalid_argument("Unsupported Cognito operation.");
+    }
+
     auto &client = cognito_client();
     switch (input.operation)
     {

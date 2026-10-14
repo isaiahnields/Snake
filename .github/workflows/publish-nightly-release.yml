@@ -87,6 +87,36 @@ jobs:
         run: ./gradlew assembleRelease
         working-directory: android
 
+      - name: Generate Self-Signed Java Keystore
+        run: |
+          keytool -genkeypair -v \
+            -keystore my-release-key.jks \
+            -alias my-key-alias \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -storepass "MyKeystorePassword123" \
+            -keypass "MyKeystorePassword123" \
+            -dname "CN=AndroidDeveloper, OU=Development, O=SelfSigned, L=Seattle, S=WA, C=US"
+
+      - name: Sign APK with apksigner
+        run: |
+          # 1. Find the Android Build Tools path dynamically
+          BUILD_TOOLS_DIR=$(dirname $(find $ANDROID_HOME/build-tools -name apksigner | head -n 1))
+          
+          # 2. Run apksigner to sign the output APK
+          $BUILD_TOOLS_DIR/apksigner sign \
+            --ks my-release-key.jks \
+            --ks-pass pass:"MyKeystorePassword123" \
+            --key-pass pass:"MyKeystorePassword123" \
+            --out android/app/build/outputs/apk/release/Snake-release-signed.apk \
+            android/app/build/outputs/apk/release/Snake-release.apk
+
+      - name: Verify Signed APK
+        run: |
+          BUILD_TOOLS_DIR=$(dirname $(find $ANDROID_HOME/build-tools -name apksigner | head -n 1))
+          $BUILD_TOOLS_DIR/apksigner verify android/app/build/outputs/apk/release/Snake-release-signed.apk
+
       - name: Delete local.properties
         run: |
           set -e
@@ -95,7 +125,7 @@ jobs:
       - name: Prepare APKs with checksums, archive mapping.txt file (basic)
         run: |
           set -e
-          mv android/app/build/outputs/apk/release/Snake-release.apk ./snake-nightly-android.apk
+          mv android/app/build/outputs/apk/release/Snake-release-signed.apk ./snake-nightly-android.apk
           sha256=`sha256sum snake-nightly-android.apk | awk '{ print $1 }'`
           echo "APK_UNIVERSAL_SHA256=$sha256" >> $GITHUB_ENV
 

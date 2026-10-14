@@ -6,9 +6,7 @@
 #include <cmath>
 #include <iostream>
 
-UserGameView::UserGameView(SessionState &session) : MenuView(MenuPage::Play), session_(session)
-{
-}
+UserGameView::UserGameView(SessionState &session) : MenuView(MenuPage::Play), session_(session) {}
 
 bool UserGameView::owns(MenuPage candidate) const
 {

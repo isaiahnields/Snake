@@ -21,6 +21,7 @@ std::string UserGameView::title() const
 std::vector<std::string> UserGameView::details() const
 {
     return {"Current game: 30x30, lethal walls, one apple, 100ms moves.",
+            "Controller: D-pad/left stick to steer; B/Circle or Start to stop.",
             "Difficulty presets and obstacles are not implemented."};
 }
 

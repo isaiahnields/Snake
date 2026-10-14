@@ -147,6 +147,7 @@ bool ViewManager::initialize_ui()
             std::cerr << "ImGui SDL platform initialization error: " << SDL_GetError() << std::endl;
             return false;
         }
+        sync_ui_gamepads();
     }
     renderer_initialized_ = ImGui_ImplSDLRenderer3_Init(renderer_);
     if (!renderer_initialized_)
@@ -192,6 +193,21 @@ void ViewManager::open_page(MenuPage page, const std::string &notice)
 void ViewManager::handle_event(const SDL_Event &input)
 {
     if (renderer_initialized_) process_ui_event(input);
+    const auto controller_key = gamepad_input_.handle_event(input);
+    if (input.type == SDL_EVENT_GAMEPAD_ADDED || input.type == SDL_EVENT_GAMEPAD_REMOVED)
+        sync_ui_gamepads();
+    if (controller_key)
+    {
+        // Forms use ImGui's focused-widget navigation, not Enter-to-submit.
+        if (custom_controller_navigation() || *controller_key == SDLK_ESCAPE)
+        {
+            SDL_Event key{};
+            key.type = SDL_EVENT_KEY_DOWN;
+            key.key.key = *controller_key;
+            active().handle_event(*this, key);
+        }
+        return;
+    }
     if (input.type == SDL_EVENT_QUIT)
     {
         if (!session_.signed_in())
@@ -205,6 +221,20 @@ void ViewManager::handle_event(const SDL_Event &input)
     if (input.type == SDL_EVENT_KEY_DOWN && input.key.repeat) return;
 
     active().handle_event(*this, input);
+}
+
+bool ViewManager::custom_controller_navigation()
+{
+    return active().as_menu() != nullptr || active_ == ViewId::SignUpOrSignIn;
+}
+
+void ViewManager::sync_ui_gamepads()
+{
+    if (!platform_initialized_) return;
+    ImGui::SetCurrentContext(ui_context_);
+    auto gamepads = gamepad_input_.gamepads();
+    ImGui_ImplSDL3_SetGamepadMode(ImGui_ImplSDL3_GamepadMode_Manual, gamepads.data(),
+                                  static_cast<int>(gamepads.size()));
 }
 
 void ViewManager::process_ui_event(const SDL_Event &input)
@@ -311,6 +341,11 @@ bool ViewManager::render()
         return false;
     }
     ImGui::SetCurrentContext(ui_context_);
+    ImGuiIO &io = ImGui::GetIO();
+    if (!custom_controller_navigation() && gamepad_input_.focused())
+        io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
+    else
+        io.ConfigFlags &= ~ImGuiConfigFlags_NavEnableGamepad;
     ImGui_ImplSDLRenderer3_NewFrame();
     if (platform_initialized_)
         ImGui_ImplSDL3_NewFrame();

@@ -13,13 +13,13 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        test: [snake_game, renderer, view_manager, ready_file]
+        test: [snake_game, renderer, view_manager, ready_file, auth]
     steps:
       - uses: actions/checkout@v7
 
       - name: Install Linux dependencies
         if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y libx11-dev libxext-dev libxcursor-dev libxi-dev libxrandr-dev libxss-dev libxtst-dev
+        run: sudo apt-get update && sudo apt-get install -y libcurl4-openssl-dev libx11-dev libxext-dev libxcursor-dev libxi-dev libxrandr-dev libxss-dev libxtst-dev
 
       - name: Configure
         run: cmake -B build -DCMAKE_BUILD_TYPE=Debug

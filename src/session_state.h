@@ -1,5 +1,8 @@
 #pragma once
 
+#include "cognito_client.h"
+
+#include <SDL3/SDL.h>
 #include <cstddef>
 #include <string>
 #include <vector>
@@ -11,6 +14,13 @@ constexpr std::size_t HALL_OF_FAME_SIZE = 5;
 // State shared between views for the lifetime of the application. Nothing here is persisted.
 struct SessionState
 {
+    PlayerTokens player;
+    Uint64 token_expires_at = 0;
+    bool signed_in() const
+    {
+        return !player.access_token.empty() && !player.id_token.empty() &&
+               SDL_GetTicks() < token_expires_at;
+    }
     int training_episodes = 1000;
     bool visual_training = true;
     std::vector<int> best_manual_scores;

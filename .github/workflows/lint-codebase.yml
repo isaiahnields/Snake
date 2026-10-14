@@ -40,7 +40,7 @@ jobs:
           if [[ "$RUNNER_OS" == "Linux" ]]; then
             sudo apt update
             sudo apt-get upgrade
-            sudo apt install --yes clang-tidy libx11-dev libxext-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libxss-dev libwayland-dev libxkbcommon-dev libxtst-dev
+            sudo apt install --yes clang-tidy libcurl4-openssl-dev libx11-dev libxext-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libxss-dev libwayland-dev libxkbcommon-dev libxtst-dev
           elif [[ "$RUNNER_OS" == "Windows" ]]; then
             choco install llvm --yes --no-progress
             echo 'C:\Program Files\LLVM\bin' >> "$GITHUB_PATH"

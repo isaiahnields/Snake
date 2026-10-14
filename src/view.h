@@ -7,6 +7,9 @@ class ViewManager;
 
 enum class ViewId
 {
+    SignUpOrSignIn,
+    SignUp,
+    SignIn,
     MainMenu,
     ManualGame,
     AIControlCenter,
@@ -32,6 +35,11 @@ class View
         (void)manager;
     }
     virtual void handle_event(ViewManager &manager, const SDL_Event &event) = 0;
+    virtual void on_leave() {}
+    virtual void apply_ui_action(ViewManager &manager)
+    {
+        (void)manager;
+    }
     virtual void update(ViewManager &manager, Uint64 now_ms)
     {
         (void)manager;

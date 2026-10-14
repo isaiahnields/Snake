@@ -14,4 +14,8 @@ add_executable(test_ready_file test_ready_file.cpp)
 target_link_libraries(test_ready_file PRIVATE snake_core)
 add_test(NAME ready_file COMMAND test_ready_file)
 
-add_custom_target(all_tests DEPENDS test_snake_game test_renderer test_view_manager test_ready_file)
+add_executable(test_auth test_auth.cpp)
+target_link_libraries(test_auth PRIVATE snake_core nlohmann_json::nlohmann_json)
+add_test(NAME auth COMMAND test_auth)
+
+add_custom_target(all_tests DEPENDS test_snake_game test_renderer test_view_manager test_ready_file test_auth)

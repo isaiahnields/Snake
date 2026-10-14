@@ -34,6 +34,18 @@ void click(ViewManager &manager, float x, float y, Uint8 button = SDL_BUTTON_LEF
     manager.handle_event(event);
 }
 
+void touch(ViewManager &manager, SDL_EventType type, float x, float y, SDL_FingerID finger_id = 1,
+           SDL_TouchID touch_id = 1)
+{
+    SDL_Event event{};
+    event.type = type;
+    event.tfinger.touchID = touch_id;
+    event.tfinger.fingerID = finger_id;
+    event.tfinger.x = x;
+    event.tfinger.y = y;
+    manager.handle_event(event);
+}
+
 bool showing(ViewManager &manager, ViewId id, MenuPage page)
 {
     const MenuView *menu = manager.active().as_menu();
@@ -55,6 +67,7 @@ bool starts_with(const std::string &text, const std::string &prefix)
 void test_main_menu_and_manual_game()
 {
     ViewManager manager;
+    authenticate_test_player(manager);
     SessionState &session = manager.session();
     CHECK(showing(manager, ViewId::MainMenu, MenuPage::Main));
     MenuView &main_menu = *manager.active().as_menu();
@@ -110,9 +123,29 @@ void test_main_menu_and_manual_game()
     CHECK(starts_with(manager.active().as_menu()->details().at(0), "No AI test games"));
 }
 
+void test_manual_swipes()
+{
+    ViewManager manager;
+    authenticate_test_player(manager);
+    press(manager, SDLK_1);
+    auto &manual = static_cast<ManualGameView &>(manager.active());
+    touch(manager, SDL_EVENT_FINGER_DOWN, 0.5f, 0.5f);
+    touch(manager, SDL_EVENT_FINGER_UP, 0.5f, 0.2f);
+    CHECK(!manual.playing());
+    press(manager, SDLK_1);
+
+    // TODO: add testing for swips
+    // const auto swipe = [&](float dx, float dy)
+    // {
+    //     touch(manager, SDL_EVENT_FINGER_DOWN, 0.5f, 0.5f);
+    //     touch(manager, SDL_EVENT_FINGER_UP, 0.5f + dx, 0.5f + dy);
+    // };
+}
+
 void test_ai_views()
 {
     ViewManager manager;
+    authenticate_test_player(manager);
     SessionState &session = manager.session();
     manager.open_page(MenuPage::AI);
     CHECK(showing(manager, ViewId::AIControlCenter, MenuPage::AI));
@@ -184,6 +217,7 @@ void test_ai_views()
 void test_exit_and_input_filtering()
 {
     ViewManager manager;
+    authenticate_test_player(manager);
     press(manager, SDLK_0);
     CHECK(showing(manager, ViewId::SaveAndExit, MenuPage::Exit));
     press(manager, SDLK_2);
@@ -220,6 +254,7 @@ void test_exit_and_input_filtering()
 void test_every_page()
 {
     ViewManager manager;
+    authenticate_test_player(manager);
     const int page_count = static_cast<int>(MenuPage::Exit) + 1;
     for (int value = 0; value < page_count; ++value)
     {
@@ -292,6 +327,7 @@ void test_session_state()
 {
     ViewManager first;
     ViewManager second;
+    authenticate_test_player(first);
     SessionState &session = first.session();
     const SessionState &other = second.session();
     CHECK(session.training_episodes == 1000);
@@ -333,6 +369,7 @@ void test_record_score()
 int main()
 {
     test_main_menu_and_manual_game();
+    test_manual_swipes();
     test_ai_views();
     test_exit_and_input_filtering();
     test_every_page();

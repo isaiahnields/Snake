@@ -75,6 +75,7 @@ static void touch(ViewManager &manager, Uint32 type, SDL_FingerID finger, float 
 static void test_ui_and_board(SDL_Renderer *renderer, SDL_Surface *surface)
 {
     ViewManager manager(renderer);
+    authenticate_test_player(manager);
     CHECK(manager.initialize_ui());
     CHECK(ImGui::GetIO().IniFilename == nullptr);
     MenuView &menu = *manager.active().as_menu();
@@ -202,6 +203,7 @@ static void test_window_backend()
     {
         {
             ViewManager manager(renderer);
+            authenticate_test_player(manager);
             CHECK(manager.initialize_ui());
             CHECK(SDL_SetRenderLogicalPresentation(renderer, WINDOW_WIDTH, WINDOW_HEIGHT,
                                                    SDL_LOGICAL_PRESENTATION_LETTERBOX));

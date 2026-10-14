@@ -30,6 +30,19 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(imgui)
 
+FetchContent_Declare(
+    json
+    GIT_REPOSITORY https://github.com/nlohmann/json.git
+    GIT_TAG v3.12.0
+    GIT_SHALLOW TRUE
+)
+FetchContent_MakeAvailable(json)
+
+find_package(Threads REQUIRED)
+if(NOT WIN32 AND NOT ANDROID)
+    find_package(CURL REQUIRED)
+endif()
+
 add_library(snake_imgui STATIC
     ${imgui_SOURCE_DIR}/imgui.cpp
     ${imgui_SOURCE_DIR}/imgui_draw.cpp

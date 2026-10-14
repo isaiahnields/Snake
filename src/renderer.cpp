@@ -38,6 +38,11 @@ void begin_screen(const std::string &subtitle)
 }
 } // namespace
 
+void begin_form_screen(const char *title)
+{
+    begin_screen(title);
+}
+
 int draw_menu(SDL_Renderer *renderer, const MenuView &menu)
 {
     (void)renderer;

@@ -32,7 +32,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libx11-dev libxext-dev libxcursor-dev libxi-dev libxrandr-dev libxss-dev libxtst-dev
+          sudo apt-get install -y libcurl4-openssl-dev libx11-dev libxext-dev libxcursor-dev libxi-dev libxrandr-dev libxss-dev libxtst-dev
 
       - name: Configure
         run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DSDL_SHARED=OFF -DSDL_STATIC=ON
@@ -103,7 +103,7 @@ jobs:
         run: |
           # 1. Find the Android Build Tools path dynamically
           BUILD_TOOLS_DIR=$(dirname $(find $ANDROID_HOME/build-tools -name apksigner | head -n 1))
-          
+
           # 2. Run apksigner to sign the output APK
           $BUILD_TOOLS_DIR/apksigner sign \
             --ks my-release-key.jks \

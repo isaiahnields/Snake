@@ -4,13 +4,13 @@
 #include "../snake_game.h"
 #include "menu_view.h"
 
-// Pre-game menu (Play Game / Choose Difficulty) and the manually controlled game itself.
-class ManualGameView : public MenuView
+// Pre-game menu (Play Game / Choose Difficulty) and the user-controlled game itself.
+class UserGameView : public MenuView
 {
   public:
     static constexpr Uint64 MOVE_INTERVAL_MS = 100;
 
-    explicit ManualGameView(SessionState &session);
+    explicit UserGameView(SessionState &session);
 
     bool owns(MenuPage candidate) const override;
     std::string title() const override;

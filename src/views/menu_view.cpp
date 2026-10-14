@@ -86,9 +86,9 @@ void MenuView::handle_event(ViewManager &manager, const SDL_Event &event)
     const SDL_Keycode key = event.key.key;
     if (key == SDLK_ESCAPE)
         back(manager);
-    else if (key == SDLK_UP)
+    else if (key == SDLK_UP || key == SDLK_W)
         move(-1);
-    else if (key == SDLK_DOWN)
+    else if (key == SDLK_DOWN || key == SDLK_S)
         move(1);
     else if (key == SDLK_RETURN || key == SDLK_SPACE)
         activate(manager);

@@ -2,11 +2,10 @@
 
 #include "menu_view.h"
 
-// Entry point for training the active AI on remote cloud infrastructure.
-class TrainCloudAIView : public MenuView
+class AITestCloudGamesView : public MenuView
 {
   public:
-    TrainCloudAIView();
+    AITestCloudGamesView();
 
     bool owns(MenuPage candidate) const override;
     std::string title() const override;

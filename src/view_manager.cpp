@@ -1,10 +1,14 @@
 #include "view_manager.h"
 
 #include "views/ai_control_center_view.h"
+#include "views/ai_test_games_view.h"
+#include "views/ai_test_cloud_games_view.h"
+#include "views/ai_train_cloud_games_view.h"
+#include "views/ai_train_games_view.h"
 #include "views/forgot_password_view.h"
 #include "views/hall_of_fame_view.h"
 #include "views/main_menu_view.h"
-#include "views/manual_game_view.h"
+#include "views/user_game_view.h"
 #include "views/replay_vault_menu.h"
 #include "views/reset_password_view.h"
 #include "views/save_and_exit_view.h"
@@ -12,7 +16,6 @@
 #include "views/sign_in_view.h"
 #include "views/sign_up_or_sign_in_view.h"
 #include "views/sign_up_view.h"
-#include "views/train_cloud_ai_view.h"
 #include "views/verify_account_view.h"
 
 #include <imgui.h>
@@ -40,9 +43,12 @@ ViewManager::ViewManager(SDL_Renderer *renderer, std::shared_ptr<CognitoClient> 
     views_[index_of(ViewId::VerifyAccount)] = std::make_unique<VerifyAccountView>(client, reset);
     views_[index_of(ViewId::ResetPassword)] = std::make_unique<ResetPasswordView>(client, reset);
     views_[index_of(ViewId::MainMenu)] = std::make_unique<MainMenuView>();
-    views_[index_of(ViewId::ManualGame)] = std::make_unique<ManualGameView>(session_);
-    views_[index_of(ViewId::AIControlCenter)] = std::make_unique<AIControlCenterView>(session_);
-    views_[index_of(ViewId::TrainCloudAI)] = std::make_unique<TrainCloudAIView>();
+    views_[index_of(ViewId::UserGame)] = std::make_unique<UserGameView>(session_);
+    views_[index_of(ViewId::AIControlCenter)] = std::make_unique<AIControlCenterView>();
+    views_[index_of(ViewId::AITrainGames)] = std::make_unique<AITrainGamesView>(session_);
+    views_[index_of(ViewId::AITestGames)] = std::make_unique<AITestGamesView>();
+    views_[index_of(ViewId::AITrainCloudGames)] = std::make_unique<AITrainCloudGamesView>();
+    views_[index_of(ViewId::AITestCloudGames)] = std::make_unique<AITestCloudGamesView>();
     views_[index_of(ViewId::HallOfFame)] = std::make_unique<HallOfFameView>(session_);
     views_[index_of(ViewId::Settings)] = std::make_unique<SettingsView>();
     views_[index_of(ViewId::ReplayVault)] = std::make_unique<ReplayVaultMenu>();

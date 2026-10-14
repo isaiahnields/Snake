@@ -2,16 +2,12 @@
 
 #include "../view_manager.h"
 
-AIControlCenterView::AIControlCenterView(SessionState &session)
-    : MenuView(MenuPage::AI), session_(session)
-{
-}
+AIControlCenterView::AIControlCenterView() : MenuView(MenuPage::AI) {}
 
 bool AIControlCenterView::owns(MenuPage candidate) const
 {
     return candidate == MenuPage::AI || candidate == MenuPage::Profiles ||
            candidate == MenuPage::CreateProfile || candidate == MenuPage::Algorithms ||
-           candidate == MenuPage::Train || candidate == MenuPage::Test ||
            candidate == MenuPage::ManageProfiles;
 }
 
@@ -25,10 +21,6 @@ std::string AIControlCenterView::title() const
         return "CREATE NEW AI PROFILE";
     case MenuPage::Algorithms:
         return "CHOOSE CORE ALGORITHM";
-    case MenuPage::Train:
-        return "TRAIN ACTIVE AI";
-    case MenuPage::Test:
-        return "TEST ACTIVE AI";
     case MenuPage::ManageProfiles:
         return "DELETE / MANAGE AI PROFILES";
     default:
@@ -46,11 +38,6 @@ std::vector<std::string> AIControlCenterView::details() const
     case MenuPage::Algorithms:
         return {"AI algorithms are not implemented.",
                 "Algorithm selection requires the profile system."};
-    case MenuPage::Train:
-        return {"AI training is not implemented.",
-                "Episode count and render mode are session preferences only."};
-    case MenuPage::Test:
-        return {"Visual AI testing is not implemented.", "Batch benchmarks are not implemented."};
     default:
         return {"No active AI is available.",
                 "Named profiles, saving and deletion are not implemented."};
@@ -78,46 +65,16 @@ std::vector<MenuItem> AIControlCenterView::items() const
                 menu_unavailable("NEAT (Genetic Algorithm / Evolution)", page),
                 menu_unavailable("A* Search (Heuristic Pathfinding)", page),
                 menu_link("Return to Create Profile", MenuPage::CreateProfile)};
-    case MenuPage::Train:
-        return {menu_command("Episodes to Run: " + std::to_string(session_.training_episodes), page,
-                             MenuAction::CycleTrainingEpisodes),
-                menu_command(session_.visual_training
-                                 ? "Render Mode: Visual (Slow to watch)"
-                                 : "Render Mode: Headless (Fast, no game rendering)",
-                             page, MenuAction::ToggleTrainingRenderMode),
-                menu_unavailable("Start Training Session", page), center};
-    case MenuPage::Test:
-        return {menu_unavailable("Run Visual Game", page),
-                menu_unavailable("Run Batch Benchmark (100 headless games)", page), center};
     case MenuPage::ManageProfiles:
         return {menu_unavailable("Delete Active AI Profile", page), center};
     default:
         return {menu_link("Select Active AI Profile", MenuPage::Profiles),
                 menu_link("Create New AI Profile", MenuPage::CreateProfile),
                 menu_link("Train Active AI", MenuPage::Train),
-                menu_link("Train Active AI in Cloud", MenuPage::CloudTraining),
                 menu_link("Test Active AI", MenuPage::Test),
+                menu_link("Train Active AI in Cloud", MenuPage::CloudTraining),
+                menu_link("Test Active AI in Cloud", MenuPage::CloudTesting),
                 menu_link("Delete/Manage AI Profiles", MenuPage::ManageProfiles),
                 menu_link("Return to Main Menu", MenuPage::Main)};
-    }
-}
-
-void AIControlCenterView::perform(MenuAction action, ViewManager &manager)
-{
-    (void)manager;
-    switch (action)
-    {
-    case MenuAction::CycleTrainingEpisodes:
-        session_.training_episodes = session_.training_episodes == 1000  ? 100
-                                     : session_.training_episodes == 100 ? 10
-                                                                         : 1000;
-        notice.clear();
-        break;
-    case MenuAction::ToggleTrainingRenderMode:
-        session_.visual_training = !session_.visual_training;
-        notice.clear();
-        break;
-    default:
-        break;
     }
 }

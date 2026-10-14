@@ -2,7 +2,7 @@
 
 #include "../src/renderer.h"
 #include "../src/view_manager.h"
-#include "../src/views/manual_game_view.h"
+#include "../src/views/user_game_view.h"
 
 #include <set>
 #include <string>
@@ -77,35 +77,47 @@ void test_main_menu_and_manual_game()
     CHECK(main_menu.selection == 6);
     press(manager, SDLK_DOWN);
     CHECK(main_menu.selection == 0);
+    press(manager, SDLK_S);
+    CHECK(main_menu.selection == 1);
+    press(manager, SDLK_W);
+    CHECK(main_menu.selection == 0);
 
     press(manager, SDLK_1);
-    CHECK(showing(manager, ViewId::ManualGame, MenuPage::Play));
+    CHECK(showing(manager, ViewId::UserGame, MenuPage::Play));
     press(manager, SDLK_2);
-    CHECK(showing(manager, ViewId::ManualGame, MenuPage::Difficulty));
+    CHECK(showing(manager, ViewId::UserGame, MenuPage::Difficulty));
     press(manager, SDLK_1);
-    CHECK(showing(manager, ViewId::ManualGame, MenuPage::Difficulty));
+    CHECK(showing(manager, ViewId::UserGame, MenuPage::Difficulty));
     CHECK(!notice(manager).empty());
     press(manager, SDLK_ESCAPE);
-    CHECK(showing(manager, ViewId::ManualGame, MenuPage::Play));
+    CHECK(showing(manager, ViewId::UserGame, MenuPage::Play));
     CHECK(notice(manager).empty());
     press(manager, SDLK_ESCAPE);
     CHECK(showing(manager, ViewId::MainMenu, MenuPage::Main));
 
     press(manager, SDLK_1);
     press(manager, SDLK_1);
-    auto &manual = static_cast<ManualGameView &>(manager.view(ViewId::ManualGame));
-    CHECK(manager.active_id() == ViewId::ManualGame);
+    auto &manual = static_cast<UserGameView &>(manager.view(ViewId::UserGame));
+    CHECK(manager.active_id() == ViewId::UserGame);
     CHECK(manual.playing());
     press(manager, SDLK_LEFT);
     CHECK(manual.game().dir == RIGHT);
     press(manager, SDLK_UP);
+    CHECK(manual.game().dir == UP);
+    press(manager, SDLK_A);
+    CHECK(manual.game().dir == LEFT);
+    press(manager, SDLK_S);
+    CHECK(manual.game().dir == DOWN);
+    press(manager, SDLK_D);
+    CHECK(manual.game().dir == RIGHT);
+    press(manager, SDLK_W);
     CHECK(manual.game().dir == UP);
 
     Uint64 now_ms = 0;
     for (int update = 0; update < 100 && session.best_manual_scores.empty(); ++update)
     {
         manual.update(manager, now_ms);
-        now_ms += ManualGameView::MOVE_INTERVAL_MS;
+        now_ms += UserGameView::MOVE_INTERVAL_MS;
     }
     CHECK(session.best_manual_scores.size() == 1);
     CHECK(manual.playing());
@@ -113,7 +125,7 @@ void test_main_menu_and_manual_game()
 
     press(manager, SDLK_ESCAPE);
     CHECK(!manual.playing());
-    CHECK(showing(manager, ViewId::ManualGame, MenuPage::Play));
+    CHECK(showing(manager, ViewId::UserGame, MenuPage::Play));
     CHECK(notice(manager) == "Manual game stopped.");
 
     manager.open_page(MenuPage::ManualGames);
@@ -128,7 +140,7 @@ void test_manual_swipes()
     ViewManager manager;
     authenticate_test_player(manager);
     press(manager, SDLK_1);
-    auto &manual = static_cast<ManualGameView &>(manager.active());
+    auto &manual = static_cast<UserGameView &>(manager.active());
     touch(manager, SDL_EVENT_FINGER_DOWN, 0.5f, 0.5f);
     touch(manager, SDL_EVENT_FINGER_UP, 0.5f, 0.2f);
     CHECK(!manual.playing());
@@ -149,7 +161,7 @@ void test_ai_views()
     SessionState &session = manager.session();
     manager.open_page(MenuPage::AI);
     CHECK(showing(manager, ViewId::AIControlCenter, MenuPage::AI));
-    CHECK(manager.active().as_menu()->items().size() == 7);
+    CHECK(manager.active().as_menu()->items().size() == 8);
     CHECK(manager.active().as_menu()->details().at(0) == "No active AI is available.");
 
     press(manager, SDLK_1);
@@ -160,7 +172,7 @@ void test_ai_views()
     press(manager, SDLK_ESCAPE);
 
     press(manager, SDLK_3);
-    CHECK(showing(manager, ViewId::AIControlCenter, MenuPage::Train));
+    CHECK(showing(manager, ViewId::AITrainGames, MenuPage::Train));
     CHECK(manager.active().as_menu()->details().at(0) == "AI training is not implemented.");
     press(manager, SDLK_1);
     CHECK(session.training_episodes == 100);
@@ -178,37 +190,48 @@ void test_ai_views()
     CHECK(!session.visual_training);
 
     press(manager, SDLK_3);
-    CHECK(showing(manager, ViewId::AIControlCenter, MenuPage::Train));
+    CHECK(showing(manager, ViewId::AITrainGames, MenuPage::Train));
     CHECK(notice(manager) == "Not implemented yet. No changes were made.");
     CHECK(session.training_episodes == 10);
     CHECK(!session.visual_training);
     manager.update();
-    CHECK(showing(manager, ViewId::AIControlCenter, MenuPage::Train));
+    CHECK(showing(manager, ViewId::AITrainGames, MenuPage::Train));
     CHECK(session.best_ai_scores.empty());
 
     press(manager, SDLK_ESCAPE);
     CHECK(showing(manager, ViewId::AIControlCenter, MenuPage::AI));
 
     press(manager, SDLK_4);
-    CHECK(showing(manager, ViewId::TrainCloudAI, MenuPage::CloudTraining));
+    CHECK(showing(manager, ViewId::AITrainCloudGames, MenuPage::CloudTraining));
     press(manager, SDLK_2);
-    CHECK(showing(manager, ViewId::TrainCloudAI, MenuPage::CloudTraining));
+    CHECK(showing(manager, ViewId::AITrainCloudGames, MenuPage::CloudTraining));
     CHECK(!notice(manager).empty());
     press(manager, SDLK_ESCAPE);
     CHECK(showing(manager, ViewId::AIControlCenter, MenuPage::AI));
 
     press(manager, SDLK_5);
-    CHECK(showing(manager, ViewId::AIControlCenter, MenuPage::Test));
+    CHECK(showing(manager, ViewId::AITestGames, MenuPage::Test));
     CHECK(manager.active().as_menu()->details().at(0) == "Visual AI testing is not implemented.");
     press(manager, SDLK_1);
-    CHECK(showing(manager, ViewId::AIControlCenter, MenuPage::Test));
+    CHECK(showing(manager, ViewId::AITestGames, MenuPage::Test));
     CHECK(notice(manager) == "Not implemented yet. No changes were made.");
     press(manager, SDLK_2);
-    CHECK(showing(manager, ViewId::AIControlCenter, MenuPage::Test));
+    CHECK(showing(manager, ViewId::AITestGames, MenuPage::Test));
     CHECK(!notice(manager).empty());
     manager.update();
-    CHECK(showing(manager, ViewId::AIControlCenter, MenuPage::Test));
+    CHECK(showing(manager, ViewId::AITestGames, MenuPage::Test));
     CHECK(session.best_ai_scores.empty());
+
+    press(manager, SDLK_ESCAPE);
+    CHECK(showing(manager, ViewId::AIControlCenter, MenuPage::AI));
+    press(manager, SDLK_6);
+    CHECK(showing(manager, ViewId::AITestCloudGames, MenuPage::CloudTesting));
+    CHECK(manager.active().as_menu()->details().at(0) ==
+          "Cloud testing runs AI games on a remote testing service.");
+    press(manager, SDLK_2);
+    CHECK(!manager.active().as_menu()->notice.empty());
+    press(manager, SDLK_ESCAPE);
+    CHECK(showing(manager, ViewId::AIControlCenter, MenuPage::AI));
 
     manager.open_page(MenuPage::AIGames);
     CHECK(starts_with(manager.active().as_menu()->details().at(0), "No AI test games"));

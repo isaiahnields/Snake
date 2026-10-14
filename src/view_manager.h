@@ -1,5 +1,6 @@
 #pragma once
 
+#include "player_token_store.h"
 #include "session_state.h"
 #include "view.h"
 #include "views/menu_view.h"
@@ -16,8 +17,10 @@ class ViewManager
 {
   public:
     // renderer may be null for non-rendering tests. Call initialize_ui() before rendering.
+    // When token_store is set, unexpired stored tokens are restored and sign-ins are persisted.
     explicit ViewManager(SDL_Renderer *renderer = nullptr,
-                         std::shared_ptr<CognitoClient> client = std::make_shared<CognitoClient>());
+                         std::shared_ptr<CognitoClient> client = std::make_shared<CognitoClient>(),
+                         std::shared_ptr<const PlayerTokenStore> token_store = nullptr);
     ~ViewManager();
     ViewManager(const ViewManager &) = delete;
     ViewManager &operator=(const ViewManager &) = delete;
@@ -39,9 +42,14 @@ class ViewManager
     View &active();
     View &view(ViewId id);
     SessionState &session();
+    void sign_in(PlayerTokens tokens, Uint64 now_ms);
+    void sign_out();
+    // Signs out, clears stored tokens and per-player state, and returns to SignUpOrSignIn.
+    void log_out();
 
   private:
     SDL_Renderer *renderer_;
+    std::shared_ptr<const PlayerTokenStore> token_store_;
     SessionState session_;
     std::array<std::unique_ptr<View>, static_cast<std::size_t>(ViewId::Count)> views_;
     ViewId active_ = ViewId::SignUpOrSignIn;
@@ -53,4 +61,5 @@ class ViewManager
     SDL_FingerID touch_finger_ = 0;
 
     void process_ui_event(const SDL_Event &event);
+    void restore_session();
 };

@@ -72,9 +72,9 @@ void test_main_menu_and_manual_game()
     CHECK(showing(manager, ViewId::MainMenu, MenuPage::Main));
     MenuView &main_menu = *manager.active().as_menu();
     CHECK(main_menu.title() == "MAIN MENU");
-    CHECK(main_menu.items().size() == 6);
+    CHECK(main_menu.items().size() == 7);
     press(manager, SDLK_UP);
-    CHECK(main_menu.selection == 5);
+    CHECK(main_menu.selection == 6);
     press(manager, SDLK_DOWN);
     CHECK(main_menu.selection == 0);
 
@@ -299,6 +299,11 @@ void test_every_page()
                 CHECK(destination != nullptr && destination->page == entries[index].target);
                 CHECK(notice(manager).empty());
                 pending.push_back(entries[index].target);
+            }
+            else if (!manager.session().signed_in())
+            {
+                CHECK(manager.active_id() == ViewId::SignUpOrSignIn);
+                authenticate_test_player(manager);
             }
         }
         manager.open_page(page);

@@ -4,6 +4,7 @@ set(SNAKE_CORE_SOURCES
     snake_game.cpp
     renderer.cpp
     ready_file.cpp
+    player_token_store.cpp
     session_state.cpp
     view_manager.cpp
     views/menu_view.cpp

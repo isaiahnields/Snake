@@ -42,6 +42,7 @@ enum class MenuAction
     StartManualGame,
     CycleTrainingEpisodes,
     ToggleTrainingRenderMode,
+    LogOut,
     Quit
 };
 

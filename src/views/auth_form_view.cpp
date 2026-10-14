@@ -71,6 +71,18 @@ void AuthFormView::on_leave()
     action_ = Action::None;
 }
 
+void AuthFormView::clear_fields()
+{
+    email_.fill(0);
+    password_.fill(0);
+    code_.fill(0);
+    account_email_.clear();
+    challenge_session_.clear();
+    challenge_username_.clear();
+    notice_.clear();
+    stage_ = AuthFormStage::Credentials;
+}
+
 void AuthFormView::start(std::function<AuthResult()> request)
 {
     if (busy()) return;
@@ -167,9 +179,7 @@ void AuthFormView::update(ViewManager &manager, Uint64 now_ms)
         }
         if (result.step == AuthStep::SignedIn)
         {
-            manager.session().player = std::move(result.tokens);
-            manager.session().token_expires_at =
-                now_ms + static_cast<Uint64>(manager.session().player.expires_in) * 1000;
+            manager.sign_in(std::move(result.tokens), now_ms);
             manager.open_page(MenuPage::Main);
         }
         else if (result.step == AuthStep::AccountConfirmed)

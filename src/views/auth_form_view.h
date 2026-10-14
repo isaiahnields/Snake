@@ -34,6 +34,8 @@ class AuthFormView : public View
     AuthFormStage stage() const;
     const std::string &notice() const;
     void set_notice(const std::string &message);
+    // Forgets everything typed or received, so the next player starts with an empty form.
+    void clear_fields();
 
   private:
     enum class Action

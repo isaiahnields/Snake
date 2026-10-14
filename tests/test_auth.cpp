@@ -4,6 +4,8 @@
 #include "../src/views/sign_up_view.h"
 
 #include <deque>
+#include <filesystem>
+#include <fstream>
 #include <imgui.h>
 #include <nlohmann/json.hpp>
 #include <utility>
@@ -331,6 +333,122 @@ void test_abandoned_request_does_not_sign_in()
     CHECK(manager.active_id() == ViewId::SignIn);
     CHECK(!manager.session().signed_in());
 }
+
+void test_tokens_persist_across_restarts()
+{
+    const auto directory = std::filesystem::temp_directory_path() /
+                           ("snake-token-test-" + std::to_string(SDL_GetTicksNS()));
+    std::filesystem::create_directories(directory);
+    const std::string path = directory.string();
+    auto store = std::make_shared<const PlayerTokenStore>(
+        [path] { return SDL_OpenFileStorage(path.c_str()); });
+    const auto token_file = directory / "player_tokens.json";
+    MockCognito offline;
+
+    {
+        MockCognito mock;
+        mock.responses = {{200, TOKENS}};
+        ViewManager manager(nullptr, mock.client(), store);
+        CHECK(manager.active_id() == ViewId::SignUpOrSignIn);
+        manager.open(ViewId::SignIn);
+        auto &form = static_cast<SignInView &>(manager.active());
+        form.submit(manager, "player@example.com", "Password1234");
+        drain(manager, form);
+        CHECK(manager.session().signed_in());
+        CHECK(std::filesystem::exists(token_file));
+    }
+
+    {
+        ViewManager manager(nullptr, offline.client(), store);
+        CHECK(manager.session().signed_in());
+        CHECK(manager.active_id() == ViewId::MainMenu);
+        const auto &player = manager.session().player;
+        CHECK(player.email == "player@example.com");
+        CHECK(player.access_token == "access" && player.id_token == "id");
+        CHECK(player.refresh_token == "refresh" && player.expires_in == 3600);
+        const Uint64 remaining = manager.session().token_expires_at - SDL_GetTicks();
+        CHECK(remaining > 3590000 && remaining <= 3600000);
+        manager.session().token_expires_at = SDL_GetTicks();
+        manager.update();
+        CHECK(manager.active_id() == ViewId::SignIn);
+        CHECK(!std::filesystem::exists(token_file));
+    }
+
+    {
+        ViewManager manager(nullptr, offline.client(), store);
+        CHECK(!manager.session().signed_in());
+        CHECK(manager.active_id() == ViewId::SignUpOrSignIn);
+    }
+
+    SDL_Time now = 0;
+    CHECK(SDL_GetCurrentTime(&now));
+    CHECK(store->save({{"player@example.com", "access", "id", "refresh", 3600}, now - 1}));
+    {
+        ViewManager manager(nullptr, offline.client(), store);
+        CHECK(!manager.session().signed_in());
+        CHECK(!std::filesystem::exists(token_file));
+    }
+
+    std::ofstream(token_file) << "{not json";
+    CHECK(!store->load());
+    {
+        ViewManager manager(nullptr, offline.client(), store);
+        CHECK(!manager.session().signed_in());
+    }
+
+    std::filesystem::remove_all(directory);
+}
+
+void test_log_out_clears_storage()
+{
+    const auto directory = std::filesystem::temp_directory_path() /
+                           ("snake-logout-test-" + std::to_string(SDL_GetTicksNS()));
+    std::filesystem::create_directories(directory);
+    const std::string path = directory.string();
+    auto store = std::make_shared<const PlayerTokenStore>(
+        [path] { return SDL_OpenFileStorage(path.c_str()); });
+    const auto token_file = directory / "player_tokens.json";
+    MockCognito offline;
+
+    {
+        MockCognito mock;
+        mock.responses = {{200, TOKENS}};
+        ViewManager manager(nullptr, mock.client(), store);
+        manager.open(ViewId::SignIn);
+        auto &form = static_cast<SignInView &>(manager.active());
+        form.submit(manager, "player@example.com", "Password1234");
+        drain(manager, form);
+        CHECK(manager.active_id() == ViewId::MainMenu);
+        CHECK(std::filesystem::exists(token_file));
+        record_score(manager.session().best_manual_scores, 12);
+
+        MenuView &menu = *manager.active().as_menu();
+        const auto items = menu.items();
+        int log_out = -1;
+        for (std::size_t index = 0; index < items.size(); ++index)
+            if (items[index].label == "Log Out") log_out = static_cast<int>(index);
+        CHECK(log_out >= 0);
+        menu.selection = log_out;
+        menu.activate(manager);
+
+        CHECK(manager.active_id() == ViewId::SignUpOrSignIn);
+        CHECK(!manager.session().signed_in());
+        CHECK(manager.session().player.access_token.empty());
+        CHECK(manager.session().best_manual_scores.empty());
+        CHECK(!std::filesystem::exists(token_file));
+        CHECK(!store->load());
+        manager.open(ViewId::MainMenu);
+        CHECK(manager.active_id() == ViewId::SignUpOrSignIn);
+    }
+
+    {
+        ViewManager manager(nullptr, offline.client(), store);
+        CHECK(!manager.session().signed_in());
+        CHECK(manager.active_id() == ViewId::SignUpOrSignIn);
+    }
+
+    std::filesystem::remove_all(directory);
+}
 } // namespace
 
 int main()
@@ -341,6 +459,8 @@ int main()
     test_unconfirmed_and_mfa();
     test_errors_do_not_authenticate();
     test_abandoned_request_does_not_sign_in();
+    test_tokens_persist_across_restarts();
+    test_log_out_clears_storage();
     test_rendered_forms_accept_text();
     return TEST_RESULT();
 }

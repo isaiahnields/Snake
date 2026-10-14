@@ -15,7 +15,7 @@ int main(int argc, char *argv[])
     SDL_SetEventFilter(HandleAppEvents, nullptr);
 #endif
 
-    if (!SDL_Init(SDL_INIT_VIDEO))
+    if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMEPAD))
     {
         std::cerr << "SDL_Init Error: " << SDL_GetError() << std::endl;
         return 1;

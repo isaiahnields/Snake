@@ -80,10 +80,6 @@ jobs:
         run: ./gradlew clean
         working-directory: android
 
-      - name: Clean build
-        run: ./gradlew clean
-        working-directory: android
-
       - name: Add secrets to local.properties
         run: touch local.properties # TODO: fill in properties file
 

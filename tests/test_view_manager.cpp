@@ -101,17 +101,17 @@ void test_main_menu_and_manual_game()
     CHECK(manager.active_id() == ViewId::UserGame);
     CHECK(manual.playing());
     press(manager, SDLK_LEFT);
-    CHECK(manual.game().dir == RIGHT);
+    CHECK(manual.game().board.snake().dir == RIGHT);
     press(manager, SDLK_UP);
-    CHECK(manual.game().dir == UP);
+    CHECK(manual.game().board.snake().dir == UP);
     press(manager, SDLK_A);
-    CHECK(manual.game().dir == LEFT);
+    CHECK(manual.game().board.snake().dir == LEFT);
     press(manager, SDLK_S);
-    CHECK(manual.game().dir == DOWN);
+    CHECK(manual.game().board.snake().dir == DOWN);
     press(manager, SDLK_D);
-    CHECK(manual.game().dir == RIGHT);
+    CHECK(manual.game().board.snake().dir == RIGHT);
     press(manager, SDLK_W);
-    CHECK(manual.game().dir == UP);
+    CHECK(manual.game().board.snake().dir == UP);
 
     Uint64 now_ms = 0;
     for (int update = 0; update < 100 && session.best_manual_scores.empty(); ++update)
@@ -121,8 +121,57 @@ void test_main_menu_and_manual_game()
     }
     CHECK(session.best_manual_scores.size() == 1);
     CHECK(manual.playing());
-    CHECK(!manual.game().game_over);
+    CHECK(manual.game_over());
+    CHECK(manual.game().game_over);
 
+    // The finished game stays frozen behind the Game Over pop-up.
+    const Point dead_head = manual.game().board.snake().head();
+    manual.update(manager, now_ms + 10 * UserGameView::MOVE_INTERVAL_MS);
+    CHECK(manual.game().board.snake().head() == dead_head);
+    CHECK(session.best_manual_scores.size() == 1);
+
+    // Keyboard selects and activates the pop-up buttons; New Game is selected first.
+    CHECK(manual.game_over_selection() == GAME_OVER_NEW_GAME);
+    press(manager, SDLK_RIGHT);
+    CHECK(manual.game_over_selection() == GAME_OVER_MAIN_MENU);
+    press(manager, SDLK_LEFT);
+    CHECK(manual.game_over_selection() == GAME_OVER_NEW_GAME);
+    press(manager, SDLK_RETURN);
+    CHECK(manual.playing());
+    CHECK(!manual.game_over());
+    CHECK(!manual.game().game_over);
+    CHECK(manual.game().score == 0);
+
+    for (int update = 0; update < 100 && !manual.game_over(); ++update)
+    {
+        manual.update(manager, now_ms);
+        now_ms += UserGameView::MOVE_INTERVAL_MS;
+    }
+    CHECK(manual.game_over());
+    CHECK(session.best_manual_scores.size() == 2);
+    press(manager, SDLK_D);
+    press(manager, SDLK_RETURN);
+    CHECK(!manual.playing());
+    CHECK(!manual.game_over());
+    CHECK(showing(manager, ViewId::MainMenu, MenuPage::Main));
+
+    // Escape on the pop-up also returns to the main menu.
+    press(manager, SDLK_1);
+    press(manager, SDLK_1);
+    CHECK(manual.playing());
+    for (int update = 0; update < 100 && !manual.game_over(); ++update)
+    {
+        manual.update(manager, now_ms);
+        now_ms += UserGameView::MOVE_INTERVAL_MS;
+    }
+    CHECK(manual.game_over());
+    press(manager, SDLK_ESCAPE);
+    CHECK(showing(manager, ViewId::MainMenu, MenuPage::Main));
+
+    press(manager, SDLK_1);
+    press(manager, SDLK_1);
+    CHECK(manual.playing());
+    CHECK(!manual.game_over());
     press(manager, SDLK_ESCAPE);
     CHECK(!manual.playing());
     CHECK(showing(manager, ViewId::UserGame, MenuPage::Play));

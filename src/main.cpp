@@ -30,15 +30,9 @@ int main(int argc, char *argv[])
         SDL_Quit();
         return 1;
     }
-    if (!SDL_SetRenderLogicalPresentation(renderer, WINDOW_WIDTH, WINDOW_HEIGHT,
-                                          SDL_LOGICAL_PRESENTATION_LETTERBOX))
-    {
-        std::cerr << "Render presentation Error: " << SDL_GetError() << std::endl;
-        SDL_DestroyRenderer(renderer);
-        SDL_DestroyWindow(window);
-        SDL_Quit();
-        return 1;
-    }
+    // draw_game scales and centers the board itself; this keeps the board and HUD legible.
+    if (!SDL_SetWindowMinimumSize(window, MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT))
+        std::cerr << "Window minimum size Error: " << SDL_GetError() << std::endl;
 
     int exit_code = 0;
     {

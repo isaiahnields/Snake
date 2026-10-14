@@ -1,10 +1,12 @@
 #include "user_game_view.h"
 
 #include "../renderer.h"
+#include "../view_manager.h"
 
 #include <algorithm>
 #include <cmath>
 #include <iostream>
+#include <utility>
 
 UserGameView::UserGameView(SessionState &session) : MenuView(MenuPage::Play), session_(session) {}
 
@@ -41,6 +43,7 @@ void UserGameView::on_enter(ViewManager &manager)
 {
     MenuView::on_enter(manager);
     playing_ = false;
+    game_over_ = false;
     swipe_active_ = false;
 }
 
@@ -49,6 +52,12 @@ void UserGameView::handle_event(ViewManager &manager, const SDL_Event &event)
     if (!playing_)
     {
         MenuView::handle_event(manager, event);
+        return;
+    }
+    if (game_over_)
+    {
+        // Pointer and touch input reach the pop-up buttons through the UI layer.
+        if (event.type == SDL_EVENT_KEY_DOWN) handle_game_over_key(manager, event.key.key);
         return;
     }
     if (event.type == SDL_EVENT_WINDOW_FOCUS_LOST || event.type == SDL_EVENT_DID_ENTER_BACKGROUND)
@@ -63,11 +72,7 @@ void UserGameView::handle_event(ViewManager &manager, const SDL_Event &event)
 
     const SDL_Keycode key = event.key.key;
     if (key == SDLK_ESCAPE)
-    {
-        playing_ = false;
-        swipe_active_ = false;
-        open(MenuPage::Play, "Manual game stopped.");
-    }
+        stop_game();
     else if (key == SDLK_UP || key == SDLK_W)
         change_direction(UP);
     else if (key == SDLK_DOWN || key == SDLK_S)
@@ -78,9 +83,54 @@ void UserGameView::handle_event(ViewManager &manager, const SDL_Event &event)
         change_direction(RIGHT);
 }
 
+void UserGameView::start_game()
+{
+    playing_ = true;
+    game_over_ = false;
+    game_over_selection_ = GAME_OVER_NEW_GAME;
+    swipe_active_ = false;
+    game_.reset();
+    timer_.reset();
+}
+
+void UserGameView::stop_game()
+{
+    playing_ = false;
+    game_over_ = false;
+    swipe_active_ = false;
+    open(MenuPage::Play, "Manual game stopped.");
+}
+
+void UserGameView::handle_game_over_key(ViewManager &manager, SDL_Keycode key)
+{
+    if (key == SDLK_LEFT || key == SDLK_A || key == SDLK_UP || key == SDLK_W)
+        game_over_selection_ = GAME_OVER_NEW_GAME;
+    else if (key == SDLK_RIGHT || key == SDLK_D || key == SDLK_DOWN || key == SDLK_S)
+        game_over_selection_ = GAME_OVER_MAIN_MENU;
+    else if (key == SDLK_RETURN || key == SDLK_KP_ENTER || key == SDLK_SPACE)
+        apply_game_over_action(manager, game_over_selection_ == GAME_OVER_NEW_GAME
+                                            ? GameOverAction::NewGame
+                                            : GameOverAction::MainMenu);
+    else if (key == SDLK_ESCAPE)
+        apply_game_over_action(manager, GameOverAction::MainMenu);
+}
+
+void UserGameView::apply_game_over_action(ViewManager &manager, GameOverAction action)
+{
+    if (action == GameOverAction::NewGame)
+        start_game();
+    else if (action == GameOverAction::MainMenu)
+    {
+        playing_ = false;
+        game_over_ = false;
+        manager.open_page(MenuPage::Main);
+    }
+}
+
 void UserGameView::change_direction(Direction direction)
 {
-    if ((static_cast<int>(direction) + 2) % 4 != game_.dir) game_.dir = direction;
+    Snake &snake = game_.board.snake();
+    if ((static_cast<int>(direction) + 2) % 4 != snake.dir) snake.dir = direction;
 }
 
 void UserGameView::handle_touch(const SDL_Event &event)
@@ -134,29 +184,60 @@ void UserGameView::handle_touch(const SDL_Event &event)
 void UserGameView::update(ViewManager &manager, Uint64 now_ms)
 {
     (void)manager;
-    if (!playing_ || !timer_.due(now_ms, MOVE_INTERVAL_MS)) return;
+    if (!playing_ || game_over_ || !timer_.due(now_ms, MOVE_INTERVAL_MS)) return;
 
     game_.step(STRAIGHT);
     if (game_.game_over)
     {
         std::cout << "Game Over! Score: " << game_.score << std::endl;
         record_score(session_.best_manual_scores, game_.score);
-        game_.reset();
+        game_over_ = true;
+        game_over_selection_ = GAME_OVER_NEW_GAME;
         swipe_active_ = false;
     }
 }
 
 void UserGameView::render(SDL_Renderer *renderer) const
 {
-    if (playing_)
-        draw_game(renderer, game_);
-    else
+    if (!playing_)
+    {
         MenuView::render(renderer);
+        return;
+    }
+    hud_action_ = draw_game(renderer, game_, session_.muted);
+    if (game_over_) game_over_action_ = draw_game_over(game_, game_over_selection_);
+}
+
+void UserGameView::apply_ui_action(ViewManager &manager)
+{
+    const GameHudAction action = std::exchange(hud_action_, GameHudAction::None);
+    const GameOverAction game_over_action = std::exchange(game_over_action_, GameOverAction::None);
+    if (!playing_)
+    {
+        MenuView::apply_ui_action(manager);
+        return;
+    }
+    if (action == GameHudAction::ToggleMute)
+        session_.muted = !session_.muted;
+    else if (action == GameHudAction::Exit)
+        stop_game();
+    else if (game_over_)
+        apply_game_over_action(manager, game_over_action);
 }
 
 bool UserGameView::playing() const
 {
     return playing_;
+}
+
+bool UserGameView::game_over() const
+{
+    return game_over_;
+}
+
+int UserGameView::game_over_selection() const
+{
+    return game_over_selection_;
 }
 
 SnakeGame &UserGameView::game()
@@ -168,8 +249,5 @@ void UserGameView::perform(MenuAction action, ViewManager &manager)
 {
     (void)manager;
     if (action != MenuAction::StartManualGame) return;
-    playing_ = true;
-    swipe_active_ = false;
-    game_.reset();
-    timer_.reset();
+    start_game();
 }

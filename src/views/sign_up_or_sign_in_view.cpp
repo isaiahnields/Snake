@@ -31,12 +31,8 @@ void SignUpOrSignInView::render(SDL_Renderer *renderer) const
     (void)renderer;
     begin_form_screen("PLAYER ACCOUNT");
     ImGui::TextWrapped("Sign up or sign in to play Snake.");
-    if (ImGui::Button(selection_ == 0 ? "> 1. Sign Up" : "1. Sign Up",
-                      ImVec2(ImGui::GetContentRegionAvail().x, 48)))
-        clicked_ = 0;
-    if (ImGui::Button(selection_ == 1 ? "> 2. Sign In" : "2. Sign In",
-                      ImVec2(ImGui::GetContentRegionAvail().x, 48)))
-        clicked_ = 1;
+    if (draw_menu_button("1. Sign Up", selection_ == 0, 48)) clicked_ = 0;
+    if (draw_menu_button("2. Sign In", selection_ == 1, 48)) clicked_ = 1;
     ImGui::TextWrapped("Up/Down: Select   Enter: Open   Esc: Exit");
     ImGui::End();
 }

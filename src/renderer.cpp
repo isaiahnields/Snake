@@ -43,6 +43,19 @@ void begin_form_screen(const char *title)
     begin_screen(title);
 }
 
+bool draw_menu_button(const std::string &text, bool selected, float height, bool available)
+{
+    ImGui::PushStyleColor(ImGuiCol_Button,
+                          selected ? ImVec4(50 / 255.0f, 120 / 255.0f, 85 / 255.0f, 1)
+                                   : ImVec4(45 / 255.0f, 45 / 255.0f, 45 / 255.0f, 1));
+    ImGui::PushStyleColor(ImGuiCol_Text,
+                          available ? ImVec4(1, 1, 1, 1) : ImVec4(.67f, .67f, .67f, 1));
+    const bool clicked =
+        ImGui::Button(text.c_str(), ImVec2(ImGui::GetContentRegionAvail().x, height));
+    ImGui::PopStyleColor(2);
+    return clicked;
+}
+
 int draw_menu(SDL_Renderer *renderer, const MenuView &menu)
 {
     (void)renderer;
@@ -60,18 +73,11 @@ int draw_menu(SDL_Renderer *renderer, const MenuView &menu)
     {
         ImGui::PushID(static_cast<int>(index));
         const bool selected = static_cast<int>(index) == menu.selection;
-        ImGui::PushStyleColor(ImGuiCol_Button,
-                              selected ? ImVec4(50 / 255.0f, 120 / 255.0f, 85 / 255.0f, 1)
-                                       : ImVec4(45 / 255.0f, 45 / 255.0f, 45 / 255.0f, 1));
-        ImGui::PushStyleColor(ImGuiCol_Text, entries[index].available
-                                                 ? ImVec4(1, 1, 1, 1)
-                                                 : ImVec4(.67f, .67f, .67f, 1));
         const std::string text =
             std::to_string(menu.shortcut_number(index)) + ". " + entries[index].label;
-        if (ImGui::Button(text.c_str(),
-                          ImVec2(ImGui::GetContentRegionAvail().x, (MENU_ROW_HEIGHT - 6) * scale)))
+        if (draw_menu_button(text, selected, (MENU_ROW_HEIGHT - 6) * scale,
+                             entries[index].available))
             clicked = static_cast<int>(index);
-        ImGui::PopStyleColor(2);
         ImGui::PopID();
         ImGui::Dummy(ImVec2(0, 2 * scale));
     }

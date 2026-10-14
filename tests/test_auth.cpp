@@ -15,7 +15,10 @@
 
 namespace
 {
-CognitoResponse ok() { return {}; }
+CognitoResponse ok()
+{
+    return {};
+}
 
 CognitoResponse failed(const std::string &code)
 {
@@ -104,8 +107,8 @@ void press(ViewManager &manager, SDL_Keycode key)
 void test_client_requests()
 {
     MockCognito mock;
-    mock.responses = {sign_up_result(false), ok(), ok(), TOKENS, mfa_result("canonical-user"),
-                      TOKENS};
+    mock.responses = {sign_up_result(false),        ok(),  ok(), TOKENS,
+                      mfa_result("canonical-user"), TOKENS};
     auto client = mock.client();
     CHECK(client->sign_up("player@example.com", "Password1234").step ==
           AuthStep::ConfirmationRequired);
@@ -573,9 +576,9 @@ void test_errors_do_not_authenticate()
         CHECK(manager.active_id() == ViewId::SignIn);
         CHECK(!manager.session().signed_in() && !form.notice().empty());
     }
-    auto failing_client = std::make_shared<CognitoClient>(
-        [](const CognitoRequest &) -> CognitoResponse
-        { throw std::runtime_error("Network unavailable."); });
+    auto failing_client =
+        std::make_shared<CognitoClient>([](const CognitoRequest &) -> CognitoResponse
+                                        { throw std::runtime_error("Network unavailable."); });
     ViewManager manager(nullptr, failing_client);
     manager.open(ViewId::SignIn);
     auto &form = static_cast<SignInView &>(manager.active());
@@ -589,8 +592,8 @@ void test_abandoned_request_does_not_sign_in()
 {
     std::promise<CognitoResponse> response;
     auto ready = response.get_future().share();
-    auto client = std::make_shared<CognitoClient>([ready](const CognitoRequest &)
-                                                  { return ready.get(); });
+    auto client =
+        std::make_shared<CognitoClient>([ready](const CognitoRequest &) { return ready.get(); });
     ViewManager manager(nullptr, client);
     manager.open(ViewId::SignIn);
     auto &form = static_cast<SignInView &>(manager.active());

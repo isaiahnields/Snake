@@ -1,5 +1,5 @@
-#include "../src/cognito_sdk.h"
 #include "../src/cognito_client.h"
+#include "../src/cognito_sdk.h"
 
 #include "test_helpers.h"
 

@@ -45,9 +45,10 @@ void begin_form_screen(const char *title)
 
 bool draw_menu_button(const std::string &text, bool selected, float height, bool available)
 {
-    ImGui::PushStyleColor(ImGuiCol_Button,
-                          selected ? ImVec4(50 / 255.0f, 120 / 255.0f, 85 / 255.0f, 1)
-                                   : ImVec4(45 / 255.0f, 45 / 255.0f, 45 / 255.0f, 1));
+    selected = selected && (SDL_HasKeyboard() || SDL_HasGamepad());
+    ImGui::PushStyleColor(ImGuiCol_Button, selected
+                                               ? ImVec4(50 / 255.0f, 120 / 255.0f, 85 / 255.0f, 1)
+                                               : ImVec4(45 / 255.0f, 45 / 255.0f, 45 / 255.0f, 1));
     ImGui::PushStyleColor(ImGuiCol_Text,
                           available ? ImVec4(1, 1, 1, 1) : ImVec4(.67f, .67f, .67f, 1));
     const bool clicked =

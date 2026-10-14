@@ -72,6 +72,94 @@ static void touch(ViewManager &manager, Uint32 type, SDL_FingerID finger, float 
     manager.render();
 }
 
+static void check_menu_has_no_selection(SDL_Surface *surface, const ViewManager &manager)
+{
+    for (int y = 0; y < surface->h; ++y)
+    {
+        if (!pixel_is(surface, static_cast<int>(MENU_LEFT) + 2, y, 50, 120, 85)) continue;
+        std::fprintf(stderr, "Unexpected selection in view %d at y=%d\n",
+                     static_cast<int>(manager.active_id()), y);
+        CHECK(false);
+        return;
+    }
+}
+
+static void test_no_navigation_devices(SDL_Renderer *renderer, SDL_Surface *surface)
+{
+    CHECK(!SDL_HasKeyboard());
+    CHECK(!SDL_HasGamepad());
+    ViewManager manager(renderer);
+    CHECK(manager.initialize_ui());
+    CHECK(manager.render());
+    check_menu_has_no_selection(surface, manager);
+    int sign_up_y = -1;
+    for (int y = 0; y < surface->h; ++y)
+    {
+        if (!pixel_is(surface, static_cast<int>(MENU_LEFT) + 2, y, 45, 45, 45)) continue;
+        sign_up_y = y + 20;
+        break;
+    }
+    CHECK(sign_up_y >= 0);
+    if (sign_up_y < 0) return;
+    click(manager, MENU_LEFT + 20, static_cast<float>(sign_up_y));
+    CHECK(manager.active_id() == ViewId::SignUp);
+    manager.open(ViewId::SignUpOrSignIn);
+    CHECK(manager.render());
+    check_menu_has_no_selection(surface, manager);
+
+    authenticate_test_player(manager);
+    for (int page = static_cast<int>(MenuPage::Main); page <= static_cast<int>(MenuPage::Exit);
+         ++page)
+    {
+        manager.open_page(static_cast<MenuPage>(page));
+        CHECK(manager.render());
+        check_menu_has_no_selection(surface, manager);
+    }
+    manager.open_page(MenuPage::Main);
+    CHECK(manager.render());
+    touch(manager, SDL_EVENT_FINGER_DOWN, 1, MENU_LEFT + 20, MENU_TOP + MENU_ROW_HEIGHT + 20);
+    touch(manager, SDL_EVENT_FINGER_UP, 1, MENU_LEFT + 20, MENU_TOP + MENU_ROW_HEIGHT + 20);
+    CHECK(manager.active_id() == ViewId::AIControlCenter);
+    CHECK(manager.render());
+    check_menu_has_no_selection(surface, manager);
+}
+
+static SDL_JoystickID attach_test_gamepad()
+{
+    SDL_VirtualJoystickDesc desc{};
+    SDL_INIT_INTERFACE(&desc);
+    desc.type = SDL_JOYSTICK_TYPE_GAMEPAD;
+    desc.nbuttons = SDL_GAMEPAD_BUTTON_COUNT;
+    desc.naxes = SDL_GAMEPAD_AXIS_COUNT;
+    desc.name = "Menu selection test gamepad";
+    const SDL_JoystickID id = SDL_AttachVirtualJoystick(&desc);
+    CHECK(id != 0);
+    CHECK(SDL_HasGamepad());
+    return id;
+}
+
+static void test_gamepad_connection(SDL_Renderer *renderer, SDL_Surface *surface)
+{
+    ViewManager manager(renderer);
+    authenticate_test_player(manager);
+    CHECK(manager.initialize_ui());
+    MenuView &menu = *manager.active().as_menu();
+    menu.selection = 2;
+    const bool already_connected = SDL_HasKeyboard() || SDL_HasGamepad();
+    CHECK(manager.render());
+    CHECK(pixel_is(surface, 60, 405, already_connected ? 50 : 45, already_connected ? 120 : 45,
+                   already_connected ? 85 : 45));
+    const SDL_JoystickID id = attach_test_gamepad();
+    CHECK(manager.render());
+    CHECK(menu.selection == 2);
+    CHECK(pixel_is(surface, 60, 405, 50, 120, 85));
+    CHECK(SDL_DetachVirtualJoystick(id));
+    CHECK(manager.render());
+    CHECK(menu.selection == 2);
+    CHECK(pixel_is(surface, 60, 405, already_connected ? 50 : 45, already_connected ? 120 : 45,
+                   already_connected ? 85 : 45));
+}
+
 static void test_account_selection(SDL_Renderer *renderer, SDL_Surface *surface)
 {
     ViewManager manager(renderer);
@@ -313,10 +401,17 @@ int main()
         SDL_DestroySurface(surface);
         return 1;
     }
+    test_no_navigation_devices(renderer, surface);
+    CHECK(SDL_Init(SDL_INIT_GAMEPAD));
+    test_gamepad_connection(renderer, surface);
+    const SDL_JoystickID gamepad = attach_test_gamepad();
     test_account_selection(renderer, surface);
     test_ui_and_board(renderer, surface);
+    CHECK(SDL_DetachVirtualJoystick(gamepad));
+    if (!SDL_HasGamepad()) test_no_navigation_devices(renderer, surface);
     SDL_DestroyRenderer(renderer);
     SDL_DestroySurface(surface);
+    SDL_Quit();
     test_window_backend();
     return TEST_RESULT();
 }

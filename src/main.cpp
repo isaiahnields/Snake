@@ -42,7 +42,9 @@ int main(int argc, char *argv[])
 
     int exit_code = 0;
     {
-        ViewManager views(renderer);
+        ViewManager views(renderer, std::make_shared<CognitoClient>(),
+                          std::make_shared<const PlayerTokenStore>(
+                              PlayerTokenStore::user_storage("isaiahnields", "snake")));
         if (!views.initialize_ui())
         {
             views.request_quit();

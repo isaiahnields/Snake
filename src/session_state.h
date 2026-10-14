@@ -11,7 +11,8 @@ constexpr std::size_t HALL_OF_FAME_SIZE = 5;
 
 // TODO: Break up session state into smaller, more focused structures.
 // TODO: Use a database structure for persistent storage.
-// State shared between views for the lifetime of the application. Nothing here is persisted.
+// State shared between views for the lifetime of the application. Only the player's tokens are
+// persisted, through the ViewManager's PlayerTokenStore.
 struct SessionState
 {
     PlayerTokens player;

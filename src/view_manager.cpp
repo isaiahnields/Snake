@@ -25,8 +25,9 @@ constexpr std::size_t index_of(ViewId id)
 }
 } // namespace
 
-ViewManager::ViewManager(SDL_Renderer *renderer, std::shared_ptr<CognitoClient> client)
-    : renderer_(renderer)
+ViewManager::ViewManager(SDL_Renderer *renderer, std::shared_ptr<CognitoClient> client,
+                         std::shared_ptr<const PlayerTokenStore> token_store)
+    : renderer_(renderer), token_store_(std::move(token_store))
 {
     views_[index_of(ViewId::SignUpOrSignIn)] = std::make_unique<SignUpOrSignInView>();
     views_[index_of(ViewId::SignUp)] = std::make_unique<SignUpView>(client);
@@ -39,6 +40,61 @@ ViewManager::ViewManager(SDL_Renderer *renderer, std::shared_ptr<CognitoClient> 
     views_[index_of(ViewId::Settings)] = std::make_unique<SettingsView>();
     views_[index_of(ViewId::ReplayVault)] = std::make_unique<ReplayVaultMenu>();
     views_[index_of(ViewId::SaveAndExit)] = std::make_unique<SaveAndExitView>();
+    open(ViewId::SignUpOrSignIn);
+    restore_session();
+}
+
+void ViewManager::restore_session()
+{
+    if (token_store_ == nullptr) return;
+    auto stored = token_store_->load();
+    if (!stored) return;
+    SDL_Time now = 0;
+    if (!SDL_GetCurrentTime(&now))
+    {
+        std::cerr << "Clock error: " << SDL_GetError() << std::endl;
+        return;
+    }
+    if (stored->expires_at <= now || stored->tokens.access_token.empty() ||
+        stored->tokens.id_token.empty())
+    {
+        token_store_->clear();
+        return;
+    }
+    const auto remaining_ms = static_cast<Uint64>(SDL_NS_TO_MS(stored->expires_at - now));
+    session_.player = std::move(stored->tokens);
+    session_.token_expires_at = SDL_GetTicks() + remaining_ms;
+    open_page(MenuPage::Main);
+}
+
+void ViewManager::sign_in(PlayerTokens tokens, Uint64 now_ms)
+{
+    session_.player = std::move(tokens);
+    const auto lifetime_ms = static_cast<Uint64>(session_.player.expires_in) * 1000;
+    session_.token_expires_at = now_ms + lifetime_ms;
+    if (token_store_ == nullptr) return;
+    SDL_Time now = 0;
+    if (!SDL_GetCurrentTime(&now))
+    {
+        std::cerr << "Clock error: " << SDL_GetError() << std::endl;
+        return;
+    }
+    token_store_->save({session_.player, now + static_cast<SDL_Time>(SDL_MS_TO_NS(lifetime_ms))});
+}
+
+void ViewManager::sign_out()
+{
+    session_.player = {};
+    session_.token_expires_at = 0;
+    if (token_store_ != nullptr) token_store_->clear();
+}
+
+void ViewManager::log_out()
+{
+    sign_out();
+    session_ = SessionState{};
+    static_cast<AuthFormView &>(view(ViewId::SignIn)).clear_fields();
+    static_cast<AuthFormView &>(view(ViewId::SignUp)).clear_fields();
     open(ViewId::SignUpOrSignIn);
 }
 
@@ -221,8 +277,7 @@ void ViewManager::update()
 {
     if (!session_.player.access_token.empty() && !session_.signed_in())
     {
-        session_.player = {};
-        session_.token_expires_at = 0;
+        sign_out();
         open(ViewId::SignIn);
         static_cast<AuthFormView &>(active()).set_notice(
             "Your session expired. Please sign in again.");

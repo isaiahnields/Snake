@@ -11,7 +11,6 @@
 enum class AuthFormStage
 {
     Credentials,
-    VerifyEmail,
     Mfa
 };
 
@@ -21,7 +20,7 @@ bool valid_password(const std::string &password);
 // Accepts 1-128 digit email verification codes.
 bool valid_code(const std::string &code);
 
-// Shared form mechanics for email/password, email confirmation and authenticator challenges.
+// Shared form mechanics for email/password and authenticator challenges.
 class AuthFormView : public View
 {
   public:
@@ -35,7 +34,6 @@ class AuthFormView : public View
 
     void submit(ViewManager &manager, const std::string &email, const std::string &password);
     void submit_code(ViewManager &manager, const std::string &code);
-    void resend_code();
     bool busy() const;
     AuthFormStage stage() const;
     const std::string &notice() const;
@@ -48,7 +46,6 @@ class AuthFormView : public View
     {
         None,
         Submit,
-        Resend,
         Back,
         Switch,
         ForgotPassword

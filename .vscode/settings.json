@@ -32,6 +32,6 @@
     "cmake.buildBeforeRun": true,
     "cmake.generator": "Ninja",
     "cmake.buildArgs": [
-        "--parallel 8"
+        "--parallel 12"
     ]
 }

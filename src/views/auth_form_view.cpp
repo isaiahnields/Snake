@@ -146,9 +146,8 @@ void AuthFormView::submit_code(ViewManager &manager, const std::string &code)
     const auto email = account_email_;
     const auto session = challenge_session_;
     const auto username = challenge_username_;
-    start(
-        [client, email, session, username, code]
-        { return client->answer_mfa(email, username, session, code); });
+    start([client, email, session, username, code]
+          { return client->answer_mfa(email, username, session, code); });
 }
 
 void AuthFormView::update(ViewManager &manager, Uint64 now_ms)
@@ -200,8 +199,7 @@ void AuthFormView::update(ViewManager &manager, Uint64 now_ms)
         }
         if (error.code == "UserNotConfirmedException")
         {
-            auto &verify =
-                static_cast<VerifyAccountView &>(manager.view(ViewId::VerifyAccount));
+            auto &verify = static_cast<VerifyAccountView &>(manager.view(ViewId::VerifyAccount));
             verify.begin_confirmation(manager, account_email_,
                                       sign_up_ ? ViewId::SignUp : ViewId::SignIn);
             verify.set_notice(error.what());

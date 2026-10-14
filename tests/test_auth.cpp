@@ -420,8 +420,7 @@ void test_rendered_forms_accept_text()
     if (renderer != nullptr)
     {
         MockCognito mock;
-        mock.responses = {
-            {200, R"({"UserConfirmed":false})"}, {200, "{}"}, {200, TOKENS}};
+        mock.responses = {{200, R"({"UserConfirmed":false})"}, {200, "{}"}, {200, TOKENS}};
         {
             ViewManager manager(renderer, mock.client());
             CHECK(manager.initialize_ui());
@@ -471,8 +470,7 @@ void test_rendered_forms_accept_text()
             key(SDLK_TAB);
             type("123456");
             key(SDLK_RETURN);
-            auto &verify =
-                static_cast<VerifyAccountView &>(manager.view(ViewId::VerifyAccount));
+            auto &verify = static_cast<VerifyAccountView &>(manager.view(ViewId::VerifyAccount));
             drain(manager, verify);
             CHECK(manager.active_id() == ViewId::SignIn);
             CHECK(!manager.session().signed_in());

@@ -134,17 +134,26 @@ void test_sign_up_and_gate()
     sign_up.submit(manager, "player@example.com", "Password1234");
     drain(manager, sign_up);
     CHECK(mock.requests.size() == 1);
-    CHECK(sign_up.stage() == AuthFormStage::VerifyEmail);
+    CHECK(sign_up.stage() == AuthFormStage::Credentials);
+    CHECK(manager.active_id() == ViewId::VerifyAccount);
     CHECK(!manager.session().signed_in());
-    sign_up.resend_code();
-    drain(manager, sign_up);
-    CHECK(sign_up.stage() == AuthFormStage::VerifyEmail);
-    sign_up.submit_code(manager, "123456");
-    drain(manager, sign_up);
+    auto &verify = static_cast<VerifyAccountView &>(manager.active());
+    verify.resend(manager);
+    drain(manager, verify);
+    CHECK(manager.active_id() == ViewId::VerifyAccount);
+    CHECK(verify.notice() == "A new code was sent to your email.");
+    verify.submit(manager, "123456");
+    CHECK(verify.busy());
+    drain(manager, verify);
     CHECK(manager.active_id() == ViewId::SignIn);
+    CHECK(mock.requests[1].first == "ResendConfirmationCode");
+    CHECK(mock.requests[1].second.at("Username") == "player@example.com");
+    CHECK(mock.requests[2].first == "ConfirmSignUp");
+    CHECK(mock.requests[2].second.at("Username") == "player@example.com");
+    CHECK(mock.requests[2].second.at("ConfirmationCode") == "123456");
     CHECK(!manager.session().signed_in());
     auto &sign_in = static_cast<SignInView &>(manager.active());
-    CHECK(!sign_in.notice().empty());
+    CHECK(sign_in.notice() == "Email verified. Sign in to play.");
     sign_in.submit(manager, "player@example.com", "Password1234");
     drain(manager, sign_in);
     CHECK(manager.active_id() == ViewId::MainMenu);
@@ -177,12 +186,12 @@ void test_validation()
     CHECK(!form.busy());
     form.submit_code(manager, "123456");
     CHECK(!form.busy());
-    form.resend_code();
-    CHECK(!form.busy() && !form.notice().empty());
     CHECK(mock.requests.empty());
     mock.responses = {{200, R"({"UserConfirmed":true})"}};
     form.submit(manager, "player@example.com", std::string(254, 'a') + "A1");
     drain(manager, form);
+    CHECK(manager.active_id() == ViewId::SignIn);
+    CHECK(!manager.session().signed_in());
     CHECK(mock.requests.size() == 1);
     CHECK(mock.requests[0].second.at("Password").get<std::string>().size() == 256);
     manager.open(ViewId::SignUp);
@@ -193,6 +202,96 @@ void test_validation()
     press(manager, SDLK_ESCAPE);
     press(manager, SDLK_ESCAPE);
     CHECK(manager.quit_requested());
+}
+
+void test_account_verification_errors_and_navigation()
+{
+    MockCognito mock;
+    mock.responses = {{200, R"({"UserConfirmed":false})"},
+                      {400, R"({"__type":"CodeMismatchException"})"},
+                      {400, R"({"__type":"ExpiredCodeException"})"},
+                      {200, "{}"},
+                      {200, "{}"},
+                      {200, R"({"UserConfirmed":false})"},
+                      {200, "{}"}};
+    ViewManager manager(nullptr, mock.client());
+    manager.open(ViewId::SignUp);
+    auto &sign_up = static_cast<SignUpView &>(manager.active());
+    sign_up.submit(manager, "player@example.com", "Password1234");
+    drain(manager, sign_up);
+    CHECK(manager.active_id() == ViewId::VerifyAccount);
+    auto &verify = static_cast<VerifyAccountView &>(manager.active());
+    for (const auto &code :
+         std::vector<std::string>{"", "12a456", "123 456", std::string(129, '1')})
+    {
+        verify.submit(manager, code);
+        CHECK(!verify.busy() && !verify.notice().empty());
+        CHECK(manager.active_id() == ViewId::VerifyAccount);
+    }
+    CHECK(mock.requests.size() == 1);
+    verify.submit(manager, "111111");
+    verify.submit(manager, "222222");
+    drain(manager, verify);
+    CHECK(mock.requests.size() == 2);
+    CHECK(manager.active_id() == ViewId::VerifyAccount);
+    CHECK(verify.notice() == "Incorrect verification code. Please try again.");
+    verify.submit(manager, "111111");
+    drain(manager, verify);
+    CHECK(manager.active_id() == ViewId::VerifyAccount);
+    CHECK(!verify.notice().empty() && !manager.session().signed_in());
+    press(manager, SDLK_ESCAPE);
+    CHECK(manager.active_id() == ViewId::SignUp);
+    CHECK(sign_up.stage() == AuthFormStage::Credentials);
+
+    manager.open(ViewId::ForgotPassword);
+    auto &forgot = static_cast<ForgotPasswordView &>(manager.active());
+    forgot.submit(manager, "reset@example.com");
+    drain(manager, forgot);
+    verify.resend(manager);
+    drain(manager, verify);
+    CHECK(mock.requests[3].first == "ForgotPassword");
+    CHECK(mock.requests[4].first == "ForgotPassword");
+    CHECK(mock.requests[4].second.at("Username") == "reset@example.com");
+    verify.submit(manager, "123456");
+    CHECK(manager.active_id() == ViewId::ResetPassword);
+
+    manager.open(ViewId::SignUp);
+    sign_up.submit(manager, "next@example.com", "Password1234");
+    drain(manager, sign_up);
+    CHECK(manager.active_id() == ViewId::VerifyAccount);
+    verify.submit(manager, "123456");
+    drain(manager, verify);
+    CHECK(manager.active_id() == ViewId::SignIn);
+    CHECK(mock.requests[6].first == "ConfirmSignUp");
+    CHECK(mock.requests[6].second.at("Username") == "next@example.com");
+    CHECK(!manager.session().signed_in());
+}
+
+void test_abandoned_verification_does_not_navigate()
+{
+    std::promise<CognitoHttpResponse> response;
+    auto ready = response.get_future().share();
+    auto client = std::make_shared<CognitoClient>(
+        [ready](const std::string &operation, const std::string &)
+        {
+            if (operation == "SignUp")
+                return CognitoHttpResponse{200, R"({"UserConfirmed":false})"};
+            return ready.get();
+        });
+    ViewManager manager(nullptr, client);
+    manager.open(ViewId::SignUp);
+    auto &sign_up = static_cast<SignUpView &>(manager.active());
+    sign_up.submit(manager, "player@example.com", "Password1234");
+    drain(manager, sign_up);
+    auto &verify = static_cast<VerifyAccountView &>(manager.active());
+    verify.submit(manager, "123456");
+    CHECK(verify.busy());
+    manager.open(ViewId::SignUpOrSignIn);
+    manager.open(ViewId::VerifyAccount);
+    response.set_value({200, "{}"});
+    drain(manager, verify);
+    CHECK(manager.active_id() == ViewId::VerifyAccount);
+    CHECK(!manager.session().signed_in());
 }
 
 void test_password_reset_requests()
@@ -321,7 +420,8 @@ void test_rendered_forms_accept_text()
     if (renderer != nullptr)
     {
         MockCognito mock;
-        mock.responses = {{200, TOKENS}};
+        mock.responses = {
+            {200, R"({"UserConfirmed":false})"}, {200, "{}"}, {200, TOKENS}};
         {
             ViewManager manager(renderer, mock.client());
             CHECK(manager.initialize_ui());
@@ -336,7 +436,7 @@ void test_rendered_forms_accept_text()
                 CHECK(manager.render());
                 CHECK(manager.active_id() == id);
             }
-            manager.open(ViewId::SignIn);
+            manager.open(ViewId::SignUp);
             CHECK(manager.render());
             const auto key = [&](SDL_Keycode value)
             {
@@ -364,14 +464,37 @@ void test_rendered_forms_accept_text()
             key(SDLK_TAB);
             type("Password1234");
             key(SDLK_RETURN);
+            auto &sign_up = static_cast<SignUpView &>(manager.view(ViewId::SignUp));
+            drain(manager, sign_up);
+            CHECK(manager.active_id() == ViewId::VerifyAccount);
+            manager.render();
+            key(SDLK_TAB);
+            type("123456");
+            key(SDLK_RETURN);
+            auto &verify =
+                static_cast<VerifyAccountView &>(manager.view(ViewId::VerifyAccount));
+            drain(manager, verify);
+            CHECK(manager.active_id() == ViewId::SignIn);
+            CHECK(!manager.session().signed_in());
+            manager.render();
+            key(SDLK_TAB);
+            type("player@example.com");
+            key(SDLK_TAB);
+            type("Password1234");
+            key(SDLK_RETURN);
             auto &form = static_cast<SignInView &>(manager.view(ViewId::SignIn));
             drain(manager, form);
-            CHECK(mock.requests.size() == 1);
-            if (!mock.requests.empty())
+            CHECK(mock.requests.size() == 3);
+            if (mock.requests.size() == 3)
             {
-                CHECK(mock.requests[0].second.at("AuthParameters").at("USERNAME") ==
+                CHECK(mock.requests[0].first == "SignUp");
+                CHECK(mock.requests[0].second.at("Username") == "player@example.com");
+                CHECK(mock.requests[0].second.at("Password") == "Password1234");
+                CHECK(mock.requests[1].first == "ConfirmSignUp");
+                CHECK(mock.requests[1].second.at("ConfirmationCode") == "123456");
+                CHECK(mock.requests[2].second.at("AuthParameters").at("USERNAME") ==
                       "player@example.com");
-                CHECK(mock.requests[0].second.at("AuthParameters").at("PASSWORD") ==
+                CHECK(mock.requests[2].second.at("AuthParameters").at("PASSWORD") ==
                       "Password1234");
             }
             CHECK(manager.session().signed_in());
@@ -397,9 +520,14 @@ void test_unconfirmed_and_mfa()
     auto &form = static_cast<SignInView &>(manager.active());
     form.submit(manager, "player@example.com", "Password1234");
     drain(manager, form);
-    CHECK(form.stage() == AuthFormStage::VerifyEmail);
-    form.submit_code(manager, "123456");
-    drain(manager, form);
+    CHECK(manager.active_id() == ViewId::VerifyAccount);
+    auto &verify = static_cast<VerifyAccountView &>(manager.active());
+    press(manager, SDLK_ESCAPE);
+    CHECK(manager.active_id() == ViewId::SignIn);
+    verify.begin_confirmation(manager, "player@example.com", ViewId::SignIn);
+    verify.submit(manager, "123456");
+    drain(manager, verify);
+    CHECK(manager.active_id() == ViewId::SignIn);
     CHECK(form.stage() == AuthFormStage::Credentials);
     form.submit(manager, "player@example.com", "Password1234");
     drain(manager, form);
@@ -592,6 +720,8 @@ int main()
     test_client_requests();
     test_sign_up_and_gate();
     test_validation();
+    test_account_verification_errors_and_navigation();
+    test_abandoned_verification_does_not_navigate();
     test_unconfirmed_and_mfa();
     test_errors_do_not_authenticate();
     test_abandoned_request_does_not_sign_in();

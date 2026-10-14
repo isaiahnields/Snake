@@ -3,6 +3,7 @@
 #include "../renderer.h"
 #include "../view_manager.h"
 #include "auth_form_view.h"
+#include "verify_account_view.h"
 
 #include <imgui.h>
 #include <utility>
@@ -48,9 +49,8 @@ void ForgotPasswordView::succeeded(ViewManager &manager, const AuthResult &resul
     (void)result;
     state_->email = std::exchange(requested_email_, {});
     state_->code.clear();
-    manager.open(ViewId::VerifyAccount);
-    static_cast<PasswordResetView &>(manager.active())
-        .set_notice("Check your email for a password reset code.");
+    static_cast<VerifyAccountView &>(manager.view(ViewId::VerifyAccount))
+        .begin_password_reset(manager);
 }
 
 void ForgotPasswordView::render(SDL_Renderer *renderer) const

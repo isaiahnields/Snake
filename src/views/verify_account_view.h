@@ -4,7 +4,7 @@
 
 #include <array>
 
-// Collects the password reset code Cognito emailed to the account.
+// Confirms new accounts or collects the emailed code for a password reset.
 class VerifyAccountView : public PasswordResetView
 {
   public:
@@ -13,6 +13,8 @@ class VerifyAccountView : public PasswordResetView
     void render(SDL_Renderer *renderer) const override;
     void submit(ViewManager &manager, const std::string &code);
     void resend(ViewManager &manager) override;
+    void begin_confirmation(ViewManager &manager, const std::string &email, ViewId back);
+    void begin_password_reset(ViewManager &manager);
 
   protected:
     ViewId back_view() const override;
@@ -21,5 +23,7 @@ class VerifyAccountView : public PasswordResetView
     void clear_inputs() override;
 
   private:
+    bool confirming_account_ = false;
+    ViewId confirmation_back_ = ViewId::SignUp;
     mutable std::array<char, 129> code_{};
 };

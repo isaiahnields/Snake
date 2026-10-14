@@ -8,14 +8,14 @@
 #include <memory>
 #include <string>
 
-// Carries the account email and emailed code between the password reset screens.
+// Carries the account email and emailed code between verification and password reset screens.
 struct PasswordResetState
 {
     std::string email;
     std::string code;
 };
 
-// Shared request, navigation and notice mechanics for the password reset screens.
+// Shared request, navigation and notice mechanics for verification and password reset screens.
 class PasswordResetView : public View
 {
   public:

@@ -62,7 +62,7 @@ void PasswordResetView::start(std::function<AuthResult()> request)
     }
     catch (const std::system_error &)
     {
-        notice_ = "Unable to start the password reset request. Please try again.";
+        notice_ = "Unable to start the authentication request. Please try again.";
     }
 }
 

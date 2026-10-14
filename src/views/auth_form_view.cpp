@@ -2,6 +2,7 @@
 
 #include "../renderer.h"
 #include "../view_manager.h"
+#include "verify_account_view.h"
 
 #include <algorithm>
 #include <chrono>
@@ -131,12 +132,12 @@ void AuthFormView::submit_code(ViewManager &manager, const std::string &code)
     (void)manager;
     if (busy()) return;
     code_.fill(0);
-    if (stage_ == AuthFormStage::Credentials)
+    if (stage_ != AuthFormStage::Mfa)
     {
         notice_ = "Submit your email and password first.";
         return;
     }
-    if (!valid_code(code) || (stage_ == AuthFormStage::Mfa && code.size() != 6))
+    if (!valid_code(code) || code.size() != 6)
     {
         notice_ = "Enter the numeric verification code.";
         return;
@@ -145,26 +146,9 @@ void AuthFormView::submit_code(ViewManager &manager, const std::string &code)
     const auto email = account_email_;
     const auto session = challenge_session_;
     const auto username = challenge_username_;
-    const bool mfa = stage_ == AuthFormStage::Mfa;
     start(
-        [client, email, session, username, code, mfa]
-        {
-            return mfa ? client->answer_mfa(email, username, session, code)
-                       : client->confirm(email, code);
-        });
-}
-
-void AuthFormView::resend_code()
-{
-    if (busy()) return;
-    if (stage_ != AuthFormStage::VerifyEmail)
-    {
-        notice_ = "Email confirmation is not pending.";
-        return;
-    }
-    const auto client = client_;
-    const auto email = account_email_;
-    start([client, email] { return client->resend(email); });
+        [client, email, session, username, code]
+        { return client->answer_mfa(email, username, session, code); });
 }
 
 void AuthFormView::update(ViewManager &manager, Uint64 now_ms)
@@ -196,10 +180,15 @@ void AuthFormView::update(ViewManager &manager, Uint64 now_ms)
             challenge_username_ = std::move(result.challenge_username);
             notice_ = "Enter the six-digit code from your authenticator app.";
         }
+        else if (result.step == AuthStep::ConfirmationRequired)
+        {
+            static_cast<VerifyAccountView &>(manager.view(ViewId::VerifyAccount))
+                .begin_confirmation(manager, account_email_,
+                                    sign_up_ ? ViewId::SignUp : ViewId::SignIn);
+        }
         else
         {
-            stage_ = AuthFormStage::VerifyEmail;
-            notice_ = "Check your email for a verification code.";
+            notice_ = "Unexpected authentication response. Please try again.";
         }
     }
     catch (const CognitoError &error)
@@ -209,8 +198,16 @@ void AuthFormView::update(ViewManager &manager, Uint64 now_ms)
             notice_.clear();
             return;
         }
-        if (error.code == "UserNotConfirmedException") stage_ = AuthFormStage::VerifyEmail;
-        notice_ = error.what();
+        if (error.code == "UserNotConfirmedException")
+        {
+            auto &verify =
+                static_cast<VerifyAccountView &>(manager.view(ViewId::VerifyAccount));
+            verify.begin_confirmation(manager, account_email_,
+                                      sign_up_ ? ViewId::SignUp : ViewId::SignIn);
+            verify.set_notice(error.what());
+        }
+        else
+            notice_ = error.what();
     }
     catch (const std::runtime_error &error)
     {
@@ -253,16 +250,13 @@ void AuthFormView::render(SDL_Renderer *renderer) const
     else
     {
         ImGui::TextWrapped("%s", account_email_.c_str());
-        ImGui::TextUnformatted(stage_ == AuthFormStage::Mfa ? "Authenticator code"
-                                                            : "Email verification code");
+        ImGui::TextUnformatted("Authenticator code");
         ImGui::InputText("##Code", code_.data(), code_.size(), ImGuiInputTextFlags_CharsDecimal);
     }
     ImGui::PopItemWidth();
     const char *label =
         stage_ == AuthFormStage::Credentials ? (sign_up_ ? "Sign Up" : "Sign In") : "Verify";
     if (ImGui::Button(label)) action_ = Action::Submit;
-    if (stage_ == AuthFormStage::VerifyEmail && ImGui::Button("Resend code"))
-        action_ = Action::Resend;
     if (!sign_up_ && stage_ == AuthFormStage::Credentials && ImGui::Button("Forgot Password"))
         action_ = Action::ForgotPassword;
     if (ImGui::Button(sign_up_ ? "Already have an account? Sign In" : "Need an account? Sign Up"))
@@ -284,8 +278,6 @@ void AuthFormView::apply_ui_action(ViewManager &manager)
         else
             submit_code(manager, code_.data());
     }
-    else if (action == Action::Resend)
-        resend_code();
     else if (action == Action::Back)
         manager.open(ViewId::SignUpOrSignIn);
     else if (action == Action::Switch)

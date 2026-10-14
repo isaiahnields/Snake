@@ -33,5 +33,7 @@
     "cmake.generator": "Ninja",
     "cmake.buildArgs": [
         "--parallel 12"
-    ]
+    ],
+    "cmake.ctest.allowParallelJobs": false,
+    "cmake.ctest.parallelJobs": 1,
 }

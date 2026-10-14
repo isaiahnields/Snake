@@ -14,7 +14,13 @@ Accounts use the `snake-prod-players` Cognito pool (`us-west-2_UZ8VHBqRy`) in
 or client secret are needed. Requests go directly to Cognito over verified HTTPS,
 on a background worker. Passwords and tokens are not saved to disk.
 Sessions expire after the access-token lifetime and require signing in again;
-automatic refresh, password reset and MFA enrollment are not implemented.
+automatic refresh and MFA enrollment are not implemented.
+**Forgot Password** on the sign-in form emails a reset code to the account's
+verified email. The player enters the code, then a new password twice; the
+passwords must match before Cognito updates the account, after which the player
+returns to **Sign In**. Because the app client keeps
+`prevent_user_existence_errors` enabled, Cognito does not reveal whether an email
+is registered, so unregistered emails also reach the code screen.
 **Log Out** on the main menu ends the session, deletes the stored tokens and
 returns to **Sign Up** / **Sign In** with empty forms.
 Unsupported account-setup challenges display an error rather than granting access.

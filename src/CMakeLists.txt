@@ -20,6 +20,10 @@ set(SNAKE_CORE_SOURCES
     views/sign_up_or_sign_in_view.cpp
     views/sign_up_view.cpp
     views/sign_in_view.cpp
+    views/password_reset_view.cpp
+    views/forgot_password_view.cpp
+    views/verify_account_view.cpp
+    views/reset_password_view.cpp
 )
 
 add_library(snake_core ${SNAKE_CORE_SOURCES})

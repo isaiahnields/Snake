@@ -29,5 +29,9 @@
     // Automatically configure CMake when you open a folder containing a CMakeLists.txt
     "cmake.configureOnOpen": true,
     // IMPORTANT: Automatically build the project right before you launch or debug it
-    "cmake.buildBeforeRun": true
+    "cmake.buildBeforeRun": true,
+    "cmake.generator": "Ninja",
+    "cmake.buildArgs": [
+        "--parallel 8"
+    ]
 }

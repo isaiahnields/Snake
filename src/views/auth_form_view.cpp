@@ -8,8 +8,6 @@
 #include <imgui.h>
 #include <utility>
 
-namespace
-{
 bool valid_email(const std::string &email)
 {
     const auto at = email.find('@');
@@ -28,7 +26,12 @@ bool valid_password(const std::string &password)
     };
     return length >= 12 && length <= 256 && has('a', 'z') && has('A', 'Z') && has('0', '9');
 }
-} // namespace
+
+bool valid_code(const std::string &code)
+{
+    return !code.empty() && code.size() <= 128 &&
+           std::all_of(code.begin(), code.end(), [](char c) { return c >= '0' && c <= '9'; });
+}
 
 AuthFormView::AuthFormView(bool sign_up, std::shared_ptr<CognitoClient> client)
     : sign_up_(sign_up), client_(std::move(client))
@@ -133,9 +136,7 @@ void AuthFormView::submit_code(ViewManager &manager, const std::string &code)
         notice_ = "Submit your email and password first.";
         return;
     }
-    if (code.empty() || code.size() > 128 ||
-        !std::all_of(code.begin(), code.end(), [](char c) { return c >= '0' && c <= '9'; }) ||
-        (stage_ == AuthFormStage::Mfa && code.size() != 6))
+    if (!valid_code(code) || (stage_ == AuthFormStage::Mfa && code.size() != 6))
     {
         notice_ = "Enter the numeric verification code.";
         return;
@@ -262,6 +263,8 @@ void AuthFormView::render(SDL_Renderer *renderer) const
     if (ImGui::Button(label)) action_ = Action::Submit;
     if (stage_ == AuthFormStage::VerifyEmail && ImGui::Button("Resend code"))
         action_ = Action::Resend;
+    if (!sign_up_ && stage_ == AuthFormStage::Credentials && ImGui::Button("Forgot Password"))
+        action_ = Action::ForgotPassword;
     if (ImGui::Button(sign_up_ ? "Already have an account? Sign In" : "Need an account? Sign Up"))
         action_ = Action::Switch;
     if (ImGui::Button("Back")) action_ = Action::Back;
@@ -287,4 +290,6 @@ void AuthFormView::apply_ui_action(ViewManager &manager)
         manager.open(ViewId::SignUpOrSignIn);
     else if (action == Action::Switch)
         manager.open(sign_up_ ? ViewId::SignIn : ViewId::SignUp);
+    else if (action == Action::ForgotPassword)
+        manager.open(ViewId::ForgotPassword);
 }

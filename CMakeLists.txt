@@ -4,6 +4,18 @@ project(snake)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/$<CONFIGURATION>")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/$<CONFIGURATION>")
 
+# Add these flags BEFORE add_subdirectory(SDL) or in your FetchContent configuration
+set(SDL_TESTS OFF CACHE BOOL "" FORCE)         # Disables building SDL test suite
+set(SDL_TEST_LIBRARY OFF CACHE BOOL "" FORCE) # Disables the test library helper
+set(SDL_INSTALL_DOCS OFF CACHE BOOL "" FORCE) # Disables building documentation
+
+
+find_program(CCACHE_PROGRAM ccache)
+if(CCACHE_PROGRAM)
+    set(CMAKE_C_COMPILER_LAUNCHER ${CCACHE_PROGRAM})
+    set(CMAKE_CXX_COMPILER_LAUNCHER ${CCACHE_PROGRAM})
+endif()
+
 include(FetchContent)
 
 if(ANDROID)

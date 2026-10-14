@@ -36,4 +36,5 @@
     ],
     "cmake.ctest.allowParallelJobs": false,
     "cmake.ctest.parallelJobs": 1,
+    "window.title": "${rootName} — ${activeEditorShort}"
 }

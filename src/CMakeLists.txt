@@ -9,9 +9,12 @@ set(SNAKE_CORE_SOURCES
     view_manager.cpp
     views/menu_view.cpp
     views/main_menu_view.cpp
-    views/manual_game_view.cpp
+    views/user_game_view.cpp
     views/ai_control_center_view.cpp
-    views/train_cloud_ai_view.cpp
+    views/ai_test_games_view.cpp
+    views/ai_train_games_view.cpp
+    views/ai_test_cloud_games_view.cpp
+    views/ai_train_cloud_games_view.cpp
     views/hall_of_fame_view.cpp
     views/settings_view.cpp
     views/replay_vault_menu.cpp

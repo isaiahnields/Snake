@@ -22,6 +22,7 @@ enum class MenuPage
     Train,
     Test,
     CloudTraining,
+    CloudTesting,
     ManageProfiles,
     Vault,
     Recordings,

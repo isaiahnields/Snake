@@ -13,7 +13,7 @@ int main()
     const std::string path = "snake-ready-file-test-" + std::to_string(unique_suffix) + ".txt";
     std::string argument = "--ready-file=" + path;
     char test_name[] = "test_ready_file";
-    char *test_argv[] = {test_name, &argument[0]};
+    char *test_argv[] = {test_name, &argument[0], nullptr};
     ReadyFile::instance().configure_from_arguments(2, test_argv);
 
     CHECK(ReadyFile::instance().upsert());

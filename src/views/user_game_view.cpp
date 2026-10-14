@@ -1,4 +1,4 @@
-#include "manual_game_view.h"
+#include "user_game_view.h"
 
 #include "../renderer.h"
 
@@ -6,27 +6,27 @@
 #include <cmath>
 #include <iostream>
 
-ManualGameView::ManualGameView(SessionState &session) : MenuView(MenuPage::Play), session_(session)
+UserGameView::UserGameView(SessionState &session) : MenuView(MenuPage::Play), session_(session)
 {
 }
 
-bool ManualGameView::owns(MenuPage candidate) const
+bool UserGameView::owns(MenuPage candidate) const
 {
     return candidate == MenuPage::Play || candidate == MenuPage::Difficulty;
 }
 
-std::string ManualGameView::title() const
+std::string UserGameView::title() const
 {
     return page == MenuPage::Difficulty ? "CHOOSE DIFFICULTY" : "PLAY GAME (MANUAL MODE)";
 }
 
-std::vector<std::string> ManualGameView::details() const
+std::vector<std::string> UserGameView::details() const
 {
     return {"Current game: 30x30, lethal walls, one apple, 100ms moves.",
             "Difficulty presets and obstacles are not implemented."};
 }
 
-std::vector<MenuItem> ManualGameView::items() const
+std::vector<MenuItem> UserGameView::items() const
 {
     if (page == MenuPage::Difficulty)
         return {menu_unavailable("Easy (Slow Speed, No Obstacles)", page),
@@ -38,14 +38,14 @@ std::vector<MenuItem> ManualGameView::items() const
             menu_link("Return to Main Menu", MenuPage::Main)};
 }
 
-void ManualGameView::on_enter(ViewManager &manager)
+void UserGameView::on_enter(ViewManager &manager)
 {
     MenuView::on_enter(manager);
     playing_ = false;
     swipe_active_ = false;
 }
 
-void ManualGameView::handle_event(ViewManager &manager, const SDL_Event &event)
+void UserGameView::handle_event(ViewManager &manager, const SDL_Event &event)
 {
     if (!playing_)
     {
@@ -69,22 +69,22 @@ void ManualGameView::handle_event(ViewManager &manager, const SDL_Event &event)
         swipe_active_ = false;
         open(MenuPage::Play, "Manual game stopped.");
     }
-    else if (key == SDLK_UP)
+    else if (key == SDLK_UP || key == SDLK_W)
         change_direction(UP);
-    else if (key == SDLK_DOWN)
+    else if (key == SDLK_DOWN || key == SDLK_S)
         change_direction(DOWN);
-    else if (key == SDLK_LEFT)
+    else if (key == SDLK_LEFT || key == SDLK_A)
         change_direction(LEFT);
-    else if (key == SDLK_RIGHT)
+    else if (key == SDLK_RIGHT || key == SDLK_D)
         change_direction(RIGHT);
 }
 
-void ManualGameView::change_direction(Direction direction)
+void UserGameView::change_direction(Direction direction)
 {
     if ((static_cast<int>(direction) + 2) % 4 != game_.dir) game_.dir = direction;
 }
 
-void ManualGameView::handle_touch(const SDL_Event &event)
+void UserGameView::handle_touch(const SDL_Event &event)
 {
     const SDL_TouchFingerEvent &finger = event.tfinger;
     if (finger.touchID == SDL_MOUSE_TOUCHID) return;
@@ -132,7 +132,7 @@ void ManualGameView::handle_touch(const SDL_Event &event)
     if (event.type == SDL_EVENT_FINGER_UP) swipe_active_ = false;
 }
 
-void ManualGameView::update(ViewManager &manager, Uint64 now_ms)
+void UserGameView::update(ViewManager &manager, Uint64 now_ms)
 {
     (void)manager;
     if (!playing_ || !timer_.due(now_ms, MOVE_INTERVAL_MS)) return;
@@ -147,7 +147,7 @@ void ManualGameView::update(ViewManager &manager, Uint64 now_ms)
     }
 }
 
-void ManualGameView::render(SDL_Renderer *renderer) const
+void UserGameView::render(SDL_Renderer *renderer) const
 {
     if (playing_)
         draw_game(renderer, game_);
@@ -155,17 +155,17 @@ void ManualGameView::render(SDL_Renderer *renderer) const
         MenuView::render(renderer);
 }
 
-bool ManualGameView::playing() const
+bool UserGameView::playing() const
 {
     return playing_;
 }
 
-SnakeGame &ManualGameView::game()
+SnakeGame &UserGameView::game()
 {
     return game_;
 }
 
-void ManualGameView::perform(MenuAction action, ViewManager &manager)
+void UserGameView::perform(MenuAction action, ViewManager &manager)
 {
     (void)manager;
     if (action != MenuAction::StartManualGame) return;

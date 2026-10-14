@@ -2,7 +2,7 @@
 
 #include "../src/renderer.h"
 #include "../src/view_manager.h"
-#include "../src/views/manual_game_view.h"
+#include "../src/views/user_game_view.h"
 
 #include <SDL3/SDL.h>
 #include <imgui.h>
@@ -261,8 +261,8 @@ static void test_ui_and_board(SDL_Renderer *renderer, SDL_Surface *surface)
     CHECK(manager.active_id() == ViewId::MainMenu);
     touch(manager, SDL_EVENT_FINGER_UP, 1, MENU_LEFT + 20, MENU_TOP + 20);
     manager.render();
-    CHECK(manager.active_id() == ViewId::ManualGame);
-    CHECK(!static_cast<ManualGameView &>(manager.active()).playing());
+    CHECK(manager.active_id() == ViewId::UserGame);
+    CHECK(!static_cast<UserGameView &>(manager.active()).playing());
 
     // SDL's synthetic touch-to-mouse event must not activate a second screen.
     SDL_Event synthetic{};
@@ -275,11 +275,11 @@ static void test_ui_and_board(SDL_Renderer *renderer, SDL_Surface *surface)
     synthetic.type = SDL_EVENT_MOUSE_BUTTON_UP;
     manager.handle_event(synthetic);
     manager.render();
-    CHECK(!static_cast<ManualGameView &>(manager.active()).playing());
+    CHECK(!static_cast<UserGameView &>(manager.active()).playing());
 
     // Game rendering and keyboard controls retain their existing behavior.
     press(manager, SDLK_RETURN);
-    auto &manual = static_cast<ManualGameView &>(manager.view(ViewId::ManualGame));
+    auto &manual = static_cast<UserGameView &>(manager.view(ViewId::UserGame));
     CHECK(manual.playing());
     SnakeGame &game = manual.game();
     game.snake = {{2, 2}, {1, 2}};
@@ -295,7 +295,7 @@ static void test_ui_and_board(SDL_Renderer *renderer, SDL_Surface *surface)
     CHECK(render_scale_is_reset(renderer));
     CHECK(ImGui::GetDrawData()->TotalVtxCount > 0);
     click(manager, MENU_LEFT + 20, MENU_TOP + 2 * MENU_ROW_HEIGHT + 20);
-    CHECK(manager.active_id() == ViewId::AIControlCenter);
+    CHECK(manager.active_id() == ViewId::AITrainGames);
     CHECK(manager.active().as_menu()->page == MenuPage::Train);
     CHECK(manager.active().as_menu()->notice == "Not implemented yet. No changes were made.");
     press(manager, SDLK_2);
@@ -304,7 +304,7 @@ static void test_ui_and_board(SDL_Renderer *renderer, SDL_Surface *surface)
     CHECK(render_scale_is_reset(renderer));
     CHECK(ImGui::GetDrawData()->TotalVtxCount > 0);
     click(manager, MENU_LEFT + 20, MENU_TOP + 2 * MENU_ROW_HEIGHT + 20);
-    CHECK(manager.active_id() == ViewId::AIControlCenter);
+    CHECK(manager.active_id() == ViewId::AITrainGames);
     CHECK(manager.active().as_menu()->page == MenuPage::Train);
     CHECK(manager.active().as_menu()->notice == "Not implemented yet. No changes were made.");
 
@@ -313,7 +313,7 @@ static void test_ui_and_board(SDL_Renderer *renderer, SDL_Surface *surface)
     CHECK(ImGui::GetDrawData()->TotalVtxCount > 0);
     touch(manager, SDL_EVENT_FINGER_DOWN, 1, MENU_LEFT + 20, MENU_TOP + 20);
     touch(manager, SDL_EVENT_FINGER_UP, 1, MENU_LEFT + 20, MENU_TOP + 20);
-    CHECK(manager.active_id() == ViewId::AIControlCenter);
+    CHECK(manager.active_id() == ViewId::AITestGames);
     CHECK(manager.active().as_menu()->page == MenuPage::Test);
     CHECK(manager.active().as_menu()->notice == "Not implemented yet. No changes were made.");
     CHECK(manager.session().best_ai_scores.empty());
@@ -356,10 +356,10 @@ static void test_window_backend()
             touch(manager, SDL_EVENT_FINGER_UP, 1, offset_x + (MENU_LEFT + 20) * scale,
                   (MENU_TOP + 20) * scale, 1200, 600, SDL_GetWindowID(window));
             manager.render();
-            CHECK(manager.active_id() == ViewId::ManualGame);
-            CHECK(!static_cast<ManualGameView &>(manager.active()).playing());
+            CHECK(manager.active_id() == ViewId::UserGame);
+            CHECK(!static_cast<UserGameView &>(manager.active()).playing());
             press(manager, SDLK_1);
-            auto &manual = static_cast<ManualGameView &>(manager.active());
+            auto &manual = static_cast<UserGameView &>(manager.active());
             const SDL_WindowID window_id = SDL_GetWindowID(window);
             for (const auto &size : {Point{1200, 600}, Point{600, 1200}})
             {

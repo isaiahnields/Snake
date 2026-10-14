@@ -1,20 +1,15 @@
 #include "cognito_client.h"
 
-#include <nlohmann/json.hpp>
 #include <utility>
 
 namespace
 {
-using Json = nlohmann::json;
-constexpr const char *CLIENT_ID = "5eg3eaf2m25t2eo8ole12nf788";
+const char *INCOMPLETE_RESPONSE = "Cognito returned an incomplete response. Please try again.";
 
-std::string string_field(const Json &object, const char *name)
+const std::string &required(const std::string &value)
 {
-    const auto field = object.find(name);
-    if (field == object.end() || !field->is_string() ||
-        field->get_ref<const std::string &>().empty())
-        throw std::runtime_error("Cognito returned an incomplete response. Please try again.");
-    return field->get<std::string>();
+    if (value.empty()) throw std::runtime_error(INCOMPLETE_RESPONSE);
+    return value;
 }
 
 std::string error_message(const std::string &code)
@@ -37,72 +32,49 @@ std::string error_message(const std::string &code)
     return "Cognito request failed (" + code + "). Please try again.";
 }
 
-Json request(const CognitoTransport &transport, const char *operation, Json body)
+CognitoResponse request(const CognitoTransport &transport, CognitoRequest body)
 {
-    body["ClientId"] = CLIENT_ID;
-    const auto response = transport(operation, body.dump());
-    Json json = Json::parse(response.body, nullptr, false);
-    if (json.is_discarded() || !json.is_object())
-        throw std::runtime_error("Cognito returned an invalid response. Please try again.");
-    if (response.status < 200 || response.status >= 300)
-    {
-        std::string code = "UnknownError";
-        const auto type = json.find("__type");
-        if (type != json.end() && type->is_string())
-        {
-            code = type->get<std::string>();
-            const auto separator = code.find_last_of('#');
-            if (separator != std::string::npos) code.erase(0, separator + 1);
-        }
-        throw CognitoError(code, error_message(code));
-    }
-    return json;
+    auto response = transport(body);
+    if (!response.error.empty()) throw CognitoError(response.error, error_message(response.error));
+    return response;
 }
 
-AuthResult authentication(const Json &json, const std::string &email)
+AuthResult authentication(const CognitoResponse &response, const std::string &email)
 {
-    const auto challenge = json.find("ChallengeName");
-    if (challenge != json.end())
+    if (!response.challenge_name.empty())
     {
-        const auto name = string_field(json, "ChallengeName");
-        if (name != "SOFTWARE_TOKEN_MFA")
+        if (response.challenge_name != "SOFTWARE_TOKEN_MFA")
             throw std::runtime_error("This account requires an unsupported Cognito challenge (" +
-                                     name + "). Complete account setup through Cognito.");
-        const auto parameters = json.find("ChallengeParameters");
-        std::string username = email;
-        if (parameters != json.end())
-        {
-            if (parameters->contains("USERNAME"))
-                username = string_field(*parameters, "USERNAME");
-            else if (parameters->contains("USER_ID_FOR_SRP"))
-                username = string_field(*parameters, "USER_ID_FOR_SRP");
-        }
-        return {AuthStep::MfaRequired, {}, string_field(json, "Session"), username};
+                                     response.challenge_name +
+                                     "). Complete account setup through Cognito.");
+        return {AuthStep::MfaRequired,
+                {},
+                required(response.session),
+                response.challenge_username.empty() ? email : response.challenge_username};
     }
-    const auto auth = json.find("AuthenticationResult");
-    if (auth == json.end() || !auth->is_object())
+    if (!response.has_tokens)
         throw std::runtime_error("Cognito did not return an authentication result.");
-    const auto expires = auth->find("ExpiresIn");
-    if (expires == auth->end() || !expires->is_number_integer() || *expires <= 0 ||
-        *expires > 86400)
+    if (response.expires_in <= 0 || response.expires_in > 86400)
         throw std::runtime_error("Cognito returned an invalid token lifetime.");
-    PlayerTokens tokens{email, string_field(*auth, "AccessToken"), string_field(*auth, "IdToken"),
-                        string_field(*auth, "RefreshToken"), expires->get<int>()};
+    PlayerTokens tokens{email, required(response.access_token), required(response.id_token),
+                        required(response.refresh_token), response.expires_in};
     return {AuthStep::SignedIn, std::move(tokens), {}, {}};
 }
 
 // Password recovery errors need account-specific wording rather than the sign-in defaults.
-Json recovery_request(const CognitoTransport &transport, const char *operation, Json body)
+CognitoResponse recovery_request(const CognitoTransport &transport, CognitoRequest body)
 {
+    const auto operation = body.operation;
     try
     {
-        return request(transport, operation, std::move(body));
+        return request(transport, std::move(body));
     }
     catch (const CognitoError &error)
     {
         if (error.code == "UserNotFoundException")
             throw CognitoError(error.code, "No account is registered with this email.");
-        if (error.code == "InvalidParameterException" && std::string(operation) == "ForgotPassword")
+        if (error.code == "InvalidParameterException" &&
+            operation == CognitoOperation::ForgotPassword)
             throw CognitoError(error.code, "This email has not been verified, so the password "
                                            "cannot be reset. Verify your email first.");
         if (error.code == "NotAuthorizedException")
@@ -121,14 +93,11 @@ CognitoClient::CognitoClient(CognitoTransport transport) : transport_(std::move(
 
 AuthResult CognitoClient::sign_up(const std::string &email, const std::string &password) const
 {
-    const auto json = request(transport_, "SignUp",
-                              {{"Username", email},
-                               {"Password", password},
-                               {"UserAttributes", {{{"Name", "email"}, {"Value", email}}}}});
-    const auto confirmed = json.find("UserConfirmed");
-    if (confirmed == json.end() || !confirmed->is_boolean())
+    const auto response =
+        request(transport_, {CognitoOperation::SignUp, email, password, {}, {}});
+    if (!response.user_confirmed)
         throw std::runtime_error("Cognito did not return account confirmation status.");
-    return {confirmed->get<bool>() ? AuthStep::AccountConfirmed : AuthStep::ConfirmationRequired,
+    return {*response.user_confirmed ? AuthStep::AccountConfirmed : AuthStep::ConfirmationRequired,
             {},
             {},
             {}};
@@ -136,46 +105,40 @@ AuthResult CognitoClient::sign_up(const std::string &email, const std::string &p
 
 AuthResult CognitoClient::confirm(const std::string &email, const std::string &code) const
 {
-    request(transport_, "ConfirmSignUp", {{"Username", email}, {"ConfirmationCode", code}});
+    request(transport_, {CognitoOperation::ConfirmSignUp, email, {}, code, {}});
     return {AuthStep::AccountConfirmed, {}, {}, {}};
 }
 
 AuthResult CognitoClient::resend(const std::string &email) const
 {
-    request(transport_, "ResendConfirmationCode", {{"Username", email}});
+    request(transport_, {CognitoOperation::ResendConfirmationCode, email, {}, {}, {}});
     return {AuthStep::CodeSent, {}, {}, {}};
 }
 
 AuthResult CognitoClient::sign_in(const std::string &email, const std::string &password) const
 {
     return authentication(
-        request(transport_, "InitiateAuth",
-                {{"AuthFlow", "USER_PASSWORD_AUTH"},
-                 {"AuthParameters", {{"USERNAME", email}, {"PASSWORD", password}}}}),
-        email);
+        request(transport_, {CognitoOperation::InitiateAuth, email, password, {}, {}}), email);
 }
 
 AuthResult CognitoClient::answer_mfa(const std::string &email, const std::string &username,
                                      const std::string &session, const std::string &code) const
 {
-    return authentication(request(transport_, "RespondToAuthChallenge",
-                                  {{"ChallengeName", "SOFTWARE_TOKEN_MFA"},
-                                   {"Session", session},
-                                   {"ChallengeResponses",
-                                    {{"USERNAME", username}, {"SOFTWARE_TOKEN_MFA_CODE", code}}}}),
-                          email);
+    return authentication(
+        request(transport_, {CognitoOperation::RespondToAuthChallenge, username, {}, code, session}),
+        email);
 }
 
 AuthResult CognitoClient::forgot_password(const std::string &email) const
 {
-    recovery_request(transport_, "ForgotPassword", {{"Username", email}});
+    recovery_request(transport_, {CognitoOperation::ForgotPassword, email, {}, {}, {}});
     return {AuthStep::CodeSent, {}, {}, {}};
 }
 
 AuthResult CognitoClient::reset_password(const std::string &email, const std::string &code,
                                          const std::string &password) const
 {
-    recovery_request(transport_, "ConfirmForgotPassword",
-                     {{"Username", email}, {"ConfirmationCode", code}, {"Password", password}});
+    recovery_request(transport_,
+                     {CognitoOperation::ConfirmForgotPassword, email, password, code, {}});
     return {AuthStep::PasswordReset, {}, {}, {}};
 }

@@ -42,8 +42,7 @@ void test_requests_and_results()
     mfa.challenge_name = "SOFTWARE_TOKEN_MFA";
     mfa.challenge_username = "canonical-user";
     mfa.session = "challenge-session";
-    mock.responses = {unconfirmed, {}, {}, signed_in_response(), mfa,
-                      signed_in_response(), {}, {}};
+    mock.responses = {unconfirmed, {}, {}, signed_in_response(), mfa, signed_in_response(), {}, {}};
     CognitoClient client([&mock](const CognitoRequest &request) { return mock(request); });
 
     CHECK(client.sign_up("player@example.com", "Password1234").step ==
@@ -63,8 +62,9 @@ void test_requests_and_results()
     CHECK(challenge.step == AuthStep::MfaRequired);
     CHECK(challenge.challenge_session == "challenge-session");
     CHECK(challenge.challenge_username == "canonical-user");
-    CHECK(client.answer_mfa("player@example.com", challenge.challenge_username,
-                            challenge.challenge_session, "654321")
+    CHECK(client
+              .answer_mfa("player@example.com", challenge.challenge_username,
+                          challenge.challenge_session, "654321")
               .step == AuthStep::SignedIn);
     CHECK(client.forgot_password("player@example.com").step == AuthStep::CodeSent);
     CHECK(client.reset_password("player@example.com", "234567", "NewPassword1234").step ==
@@ -100,12 +100,13 @@ void test_mfa_fallback_and_invalid_responses()
     CognitoResponse expired_tokens = signed_in_response();
     expired_tokens.expires_in = 86401;
     std::deque<CognitoResponse> responses = {mfa, unsupported_challenge, no_tokens, expired_tokens};
-    CognitoClient client([&responses](const CognitoRequest &)
-                         {
-                             const auto response = responses.front();
-                             responses.pop_front();
-                             return response;
-                         });
+    CognitoClient client(
+        [&responses](const CognitoRequest &)
+        {
+            const auto response = responses.front();
+            responses.pop_front();
+            return response;
+        });
 
     const auto challenge = client.sign_in("player@example.com", "Password1234");
     CHECK(challenge.step == AuthStep::MfaRequired);
@@ -148,12 +149,13 @@ void test_service_errors()
     CognitoResponse unauthorized;
     unauthorized.error = "NotAuthorizedException";
     std::deque<CognitoResponse> responses = {missing_user, unverified, unauthorized};
-    CognitoClient client([&responses](const CognitoRequest &)
-                         {
-                             const auto response = responses.front();
-                             responses.pop_front();
-                             return response;
-                         });
+    CognitoClient client(
+        [&responses](const CognitoRequest &)
+        {
+            const auto response = responses.front();
+            responses.pop_front();
+            return response;
+        });
 
     int errors = 0;
     try

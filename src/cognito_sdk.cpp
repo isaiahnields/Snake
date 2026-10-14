@@ -75,8 +75,7 @@ std::string standard_string(const Aws::String &value)
 template <typename Outcome> CognitoResponse failure(const Outcome &outcome)
 {
     CognitoResponse response;
-    response.error = standard_string(
-        outcome.GetError().GetExceptionName());
+    response.error = standard_string(outcome.GetError().GetExceptionName());
     if (response.error.empty()) response.error = "UnknownError";
     return response;
 }

@@ -46,18 +46,6 @@ void click(ViewManager &manager, float x, float y, Uint8 button = SDL_BUTTON_LEF
     manager.handle_event(event);
 }
 
-void touch(ViewManager &manager, SDL_EventType type, float x, float y, SDL_FingerID finger_id = 1,
-           SDL_TouchID touch_id = 1)
-{
-    SDL_Event event{};
-    event.type = type;
-    event.tfinger.touchID = touch_id;
-    event.tfinger.fingerID = finger_id;
-    event.tfinger.x = x;
-    event.tfinger.y = y;
-    manager.handle_event(event);
-}
-
 bool showing(ViewManager &manager, ViewId id, MenuPage page)
 {
     const MenuView *menu = manager.active().as_menu();

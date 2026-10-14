@@ -16,7 +16,8 @@ class ViewManager
 {
   public:
     // renderer may be null for non-rendering tests. Call initialize_ui() before rendering.
-    explicit ViewManager(SDL_Renderer *renderer = nullptr);
+    explicit ViewManager(SDL_Renderer *renderer = nullptr,
+                         std::shared_ptr<CognitoClient> client = std::make_shared<CognitoClient>());
     ~ViewManager();
     ViewManager(const ViewManager &) = delete;
     ViewManager &operator=(const ViewManager &) = delete;
@@ -43,7 +44,7 @@ class ViewManager
     SDL_Renderer *renderer_;
     SessionState session_;
     std::array<std::unique_ptr<View>, static_cast<std::size_t>(ViewId::Count)> views_;
-    ViewId active_ = ViewId::MainMenu;
+    ViewId active_ = ViewId::SignUpOrSignIn;
     bool quit_ = false;
     ImGuiContext *ui_context_ = nullptr;
     bool platform_initialized_ = false;

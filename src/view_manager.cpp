@@ -7,6 +7,9 @@
 #include "views/replay_vault_menu.h"
 #include "views/save_and_exit_view.h"
 #include "views/settings_view.h"
+#include "views/sign_in_view.h"
+#include "views/sign_up_or_sign_in_view.h"
+#include "views/sign_up_view.h"
 #include "views/train_cloud_ai_view.h"
 
 #include <imgui.h>
@@ -22,8 +25,12 @@ constexpr std::size_t index_of(ViewId id)
 }
 } // namespace
 
-ViewManager::ViewManager(SDL_Renderer *renderer) : renderer_(renderer)
+ViewManager::ViewManager(SDL_Renderer *renderer, std::shared_ptr<CognitoClient> client)
+    : renderer_(renderer)
 {
+    views_[index_of(ViewId::SignUpOrSignIn)] = std::make_unique<SignUpOrSignInView>();
+    views_[index_of(ViewId::SignUp)] = std::make_unique<SignUpView>(client);
+    views_[index_of(ViewId::SignIn)] = std::make_unique<SignInView>(client);
     views_[index_of(ViewId::MainMenu)] = std::make_unique<MainMenuView>();
     views_[index_of(ViewId::ManualGame)] = std::make_unique<ManualGameView>(session_);
     views_[index_of(ViewId::AIControlCenter)] = std::make_unique<AIControlCenterView>(session_);
@@ -32,7 +39,7 @@ ViewManager::ViewManager(SDL_Renderer *renderer) : renderer_(renderer)
     views_[index_of(ViewId::Settings)] = std::make_unique<SettingsView>();
     views_[index_of(ViewId::ReplayVault)] = std::make_unique<ReplayVaultMenu>();
     views_[index_of(ViewId::SaveAndExit)] = std::make_unique<SaveAndExitView>();
-    open(ViewId::MainMenu);
+    open(ViewId::SignUpOrSignIn);
 }
 
 ViewManager::~ViewManager()
@@ -88,6 +95,10 @@ bool ViewManager::initialize_ui()
 
 void ViewManager::open(ViewId id)
 {
+    if (id != ViewId::SignUpOrSignIn && id != ViewId::SignUp && id != ViewId::SignIn &&
+        !session_.signed_in())
+        id = ViewId::SignUpOrSignIn;
+    active().on_leave();
     active_ = id;
     active().on_enter(*this);
 }
@@ -99,6 +110,7 @@ void ViewManager::open_page(MenuPage page, const std::string &notice)
         MenuView *menu = views_[index]->as_menu();
         if (menu == nullptr || !menu->owns(page)) continue;
         open(static_cast<ViewId>(index));
+        if (active().as_menu() != menu) return;
         menu->open(page, notice);
         return;
     }
@@ -110,6 +122,11 @@ void ViewManager::handle_event(const SDL_Event &input)
     if (renderer_initialized_) process_ui_event(input);
     if (input.type == SDL_EVENT_QUIT)
     {
+        if (!session_.signed_in())
+        {
+            request_quit();
+            return;
+        }
         open_page(MenuPage::Exit);
         return;
     }
@@ -202,6 +219,14 @@ void ViewManager::process_ui_event(const SDL_Event &input)
 
 void ViewManager::update()
 {
+    if (!session_.player.access_token.empty() && !session_.signed_in())
+    {
+        session_.player = {};
+        session_.token_expires_at = 0;
+        open(ViewId::SignIn);
+        static_cast<AuthFormView &>(active()).set_notice(
+            "Your session expired. Please sign in again.");
+    }
     active().update(*this, SDL_GetTicks());
 }
 
@@ -234,7 +259,6 @@ bool ViewManager::render()
     ImGui::NewFrame();
     SDL_SetRenderDrawColor(renderer_, 30, 30, 30, 255);
     SDL_RenderClear(renderer_);
-    MenuView *menu = active().as_menu();
     active().render(renderer_);
     ImGui::Render();
     int width = 0, height = 0;
@@ -261,7 +285,7 @@ bool ViewManager::render()
         request_quit();
         return false;
     }
-    if (menu != nullptr) menu->apply_ui_action(*this);
+    active().apply_ui_action(*this);
     return true;
 }
 

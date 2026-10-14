@@ -6,7 +6,6 @@
     "java.autobuild.enabled": false,
     "gradle.autoDetect": "off",
     "gradle.nestedProjects": false,
-    "cmake.buildBeforeRun": false,
     "cmake.ctest.neverDebugTestsWithLaunchConfiguration": false,
     "files.autoSave": "afterDelay",
     "files.exclude": {
@@ -24,5 +23,11 @@
         "**/android/.idea": true
     },
     "editor.formatOnSave": true,
-    "git.autofetch": true
+    "git.autofetch": true,
+    // Automatically configure CMake whenever you modify and save CMakeLists.txt
+    "cmake.configureOnEdit": true,
+    // Automatically configure CMake when you open a folder containing a CMakeLists.txt
+    "cmake.configureOnOpen": true,
+    // IMPORTANT: Automatically build the project right before you launch or debug it
+    "cmake.buildBeforeRun": true
 }

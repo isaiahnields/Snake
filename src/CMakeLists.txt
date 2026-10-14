@@ -1,4 +1,6 @@
 set(SNAKE_CORE_SOURCES
+    cognito_client.cpp
+    cognito_http.cpp
     snake_game.cpp
     renderer.cpp
     ready_file.cpp
@@ -13,10 +15,21 @@ set(SNAKE_CORE_SOURCES
     views/settings_view.cpp
     views/replay_vault_menu.cpp
     views/save_and_exit_view.cpp
+    views/auth_form_view.cpp
+    views/sign_up_or_sign_in_view.cpp
+    views/sign_up_view.cpp
+    views/sign_in_view.cpp
 )
 
 add_library(snake_core ${SNAKE_CORE_SOURCES})
 target_link_libraries(snake_core PUBLIC SDL3::SDL3 snake_imgui)
+target_compile_features(snake_core PUBLIC cxx_std_17)
+target_link_libraries(snake_core PRIVATE nlohmann_json::nlohmann_json Threads::Threads)
+if(WIN32)
+    target_link_libraries(snake_core PRIVATE winhttp)
+elseif(NOT ANDROID)
+    target_link_libraries(snake_core PRIVATE CURL::libcurl)
+endif()
 
 if(ANDROID)
     add_library(main SHARED main.cpp app_events.cpp)
